@@ -1,6 +1,7 @@
 const fs = require('fs');
 const term = require('terminal-kit').terminal;
 const { log, waitForResponse, savePlayer } = require('./util/util.js');
+const { startGame } = require('./player/playerCommands.js');
 
 let player;
 
@@ -23,8 +24,8 @@ term.on('key', (name) => {
 
 log("Set your terminal to full screen and press any key to continue...");
 
-term.once('key', async () => {
-    if (!player.name) {
+if (!player.name) {
+    term.once('key', async () => {
         term.clear();
         log(fs.readFileSync('./ASCII/start.txt', 'utf8'));
         const input = await waitForResponse("Welcome back. Warrior. What is your name?", 80, 150, 25, 2);
@@ -32,10 +33,11 @@ term.once('key', async () => {
         player.room = "start";
         savePlayer(player);
         await term.slowTyping(`...${input}, that is your name? Interesting.`, {delay: 80});
-    }
-    term.once('key', () => {
-        term.clear();
-        log("You glance at your surroundings, the smell of damp earth fills your nostrils. You are in a dark cave. You have no memory of how you got here. You see a lit doorway.");
-        // start game commands here
     });
+}
+term.once('key', () => {
+    term.clear();
+    // log("You glance at your surroundings, the smell of damp earth fills your nostrils. You are in a dark cave. You have no memory of how you got here. You see a lit doorway.");
+    // term.nextLine(1);
+    startGame();
 });
