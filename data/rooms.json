@@ -1,0 +1,8 @@
+{
+    "start": {
+        "description": "You glance at your surroundings, the smell of damp earth fills your nostrils. You are in a dark cave. You have no memory of how you got here. You see a lit doorway.",
+        "exits": {
+            "doorway":"shrine"
+        }
+    }
+}
