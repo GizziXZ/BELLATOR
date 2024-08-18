@@ -1,7 +1,6 @@
 const fs = require('fs');
 const term = require('terminal-kit').terminal;
-const { log } = require('./util/util.js');
-const { error } = require('console');
+const { log, waitForResponse } = require('./util/util.js');
 
 term.fullscreen(true);
 term.grabInput({ mouse: 'button' });
@@ -14,25 +13,13 @@ term.on('key', (name) => {
 });
 
 log("Set your terminal to full screen and press any key to continue...");
-term.on('key', () => {
+
+term.once('key', () => {
     term.clear();
     log(fs.readFileSync('./ASCII/start.txt', 'utf8'));
-    term.moveTo(150, 25);
-    term.slowTyping("Welcome back. Warrior. What is your name?").then(() => {
-        term.inputField({ cancelable: false }, (error, input) => {
-            if (error) {
-                term.red("Error: " + error);
-            } else {
-                term.slowTyping(`...${input}..., that is your name? Interesting.`, { delay: 50 }).then(() => {
-                    console.log('the end, for now');
-                });
-            }
-        })
+    waitForResponse("Welcome back. Warrior. What is your name?", 80, 150, 25, 2, (input) => term.slowTyping(`...${input}, that is your name? Interesting.`, { delay: 80 }))
+    term.once('key', () => {
+        term.clear();
+        log("You glance at your surroundings, the smell of damp earth fills your nostrils. You are in a dark cave. You have no memory of how you got here. You see a lit doorway. Do you go through it? (Y/N)");
     });
 });
-
-// log(fs.readFileSync('./ASCII/start.txt', 'utf8'));
-
-// term.slowTyping('Welcome to the game!').then(() => {
-//   log('Type "start" to begin');
-// });
