@@ -5,6 +5,51 @@ const { log, savePlayer, logDebug } = require('../util/util');
 
 let player;
 
+class Room {
+    constructor(name, description) {
+        this.name = name;
+        this.description = description;
+        this.exits = {}; // Exits will be added dynamically
+    }
+}
+
+class Player {
+    constructor(startRoom) {
+        this.currentRoom = startRoom;
+        this.path = [startRoom.name];
+    }
+    
+    move(exit) {
+        if (this.currentRoom.exits[exit]) {
+            this.currentRoom = this.currentRoom.exits[exit];
+            this.path.push(this.currentRoom.name);
+        } else {
+            const newRoom = generateRandomRoom();
+            this.currentRoom.exits[exit] = newRoom;
+            this.currentRoom = newRoom;
+            this.path.push(newRoom.name);
+        }
+    }
+}
+
+// temporary function to generate a random room
+function generateRandomRoom() {
+    const roomNames = ["Cave", "Dungeon", "Hall", "Chamber", "Crypt"];
+    const roomDescriptions = [
+        "A dark and damp cave.",
+        "A cold and eerie dungeon.",
+        "A grand hall with high ceilings.",
+        "A small chamber with flickering torches.",
+        "A crypt with ancient tombs."
+    ];
+    
+    const randomIndex = Math.floor(Math.random() * roomNames.length);
+    const roomName = roomNames[randomIndex] + Math.floor(Math.random() * 1000);
+    const roomDescription = roomDescriptions[randomIndex];
+    
+    return new Room(roomName, roomDescription);
+}
+
 function updatePlayerVariable(data) {
     if (!data) return player = JSON.parse(fs.readFileSync('./player/player.json', 'utf8'));
     fs.writeFileSync('./player/player.json', JSON.stringify(data));
@@ -34,11 +79,13 @@ const commands = {
     },
     move: (exit) => {
         if (!exit) return log("Where would you like to move to?", 'yellow');
-        const room = rooms[player.room];
+        const room = rooms[player.currentRoom.name];
         let targetRoom;
     
         // find the exit in the current room
         const foundExit = room.exits.find(item => typeof item === 'string' ? item === exit : Object.keys(item)[0] === exit);
+
+        if (!foundExit) return log("I don't see that exit.", 'red');
     
         if (typeof foundExit === 'string') {
             targetRoom = foundExit; // If the exit is a string, use it directly
@@ -47,38 +94,16 @@ const commands = {
         }
     
         if (targetRoom && rooms[targetRoom]) { // If the target room is predefined
-            player.room = targetRoom;
+            player.currentRoom = rooms[targetRoom];
             // savePlayer(player);
             updatePlayerVariable(player);
             log(commands['look']());
         } else { // If the target room is random
-            function getRandomRoom() {
-                const randomRoomIndex = Math.floor(Math.random() * Object.keys(rooms).length);
-                const randomRoom = Object.values(rooms)[randomRoomIndex];
-                if (!randomRoom.random) return getRandomRoom();
-                return randomRoom
-            }
-            const randomRoom = getRandomRoom();
-            if (!player.generatedPath[player.room]) {
-                player.generatedPath[player.room] = {};
-            }
-            // player.generatedPath[player.room][exit] = Object.keys(rooms).find(key => rooms[key] === randomRoom);
-            // FIXME this is so complicated, am i even doing this right or is there an easier way to do what im trying to do
-            Object.values(room.exits).forEach(exit => { // exit is the exit name
-                if (!player.generatedPath[player.room]) {
-                    player.generatedPath[player.room] = {};
-                }
-                if (!player.generatedPath[player.room][exit]) {
-                    player.generatedPath[player.room][exit] = {};
-                }
-                logDebug(JSON.stringify(randomRoom));
-                if (randomRoom) { // randomroom will need to be json stringified before saving
-                    player.generatedPath[player.room][exit][randomRoom] = {};
-                }
-            });
-            player.room = Object.keys(rooms).find(key => rooms[key] === randomRoom);
-            // savePlayer(player);
+            const newRoom = generateRandomRoom();
+            room.exits[exit] = newRoom;
+            player.currentRoom = newRoom;
             updatePlayerVariable(player);
+            log(commands['look']());
         }
     },
     interact: (item) => {

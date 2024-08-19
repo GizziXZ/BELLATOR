@@ -1,13 +1,11 @@
 {
     "start": {
-        "random": false,
         "description":"You glance at your surroundings, the smell of damp earth fills your nostrils. You are in a dark cave. You have no memory of how you got here. You see a lit hole in the wall infront of you.",
         "exits": [{
             "hole":"shrineSTART"
         }]
     },
     "shrineSTART": {
-        "random": false,
         "description":"As you go through the hole, you notice you are now in a shrine. There are lit candles and a statue of what appears to be a god of death. You notice a glowing orb on the altar.",
         "items": {
             "orb": {
@@ -23,7 +21,6 @@
         }
     },
     "shrine": {
-        "random": false,
         "description":"You are in the shrine. The orb is still glowing on the altar. a sense of purpose fills you.",
         "items": {
             "orb": {
@@ -35,18 +32,7 @@
         }]
     },
     "gameSTART": {
-        "random": false,
         "description":"You notice you are inside a dungeon, the walls are damp and the air is musty. There are two paths ahead of you, one to the left and one to the right.",
         "exits": ["left","right"]
-    },
-    "randomRoom": {
-        "random": true,
-        "description": "You find yourself in a mysterious room. The walls are adorned with ancient symbols and the air is filled with an eerie silence.",
-        "exits": ["left","right"]
-    },
-    "randomRoom2": {
-        "random": true,
-        "description": "You stumble upon a hidden chamber. The room is filled with treasures and artifacts from a long-lost civilization. The air is thick with anticipation and mystery.",
-        "exits": ["north", "south", "east", "west"]
     }
 }
