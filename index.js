@@ -1,7 +1,7 @@
 const fs = require('fs');
 const term = require('terminal-kit').terminal;
 const { log, waitForResponse, savePlayer } = require('./util/util.js');
-const { startGame } = require('./player/playerCommands.js');
+const { startGame, startGameplay } = require('./player/playerCommands.js');
 
 let player;
 
@@ -34,11 +34,11 @@ if (!player.name) { // game intro sequence
         await savePlayer(player);
         await term.slowTyping(`...${input}, that is your name? Interesting.`, {delay: 80});
         term.once('key', () => {
-            startGame();
+            startGameplay();
         });
     });
 } else {
     term.once('key', () => {
-        startGame();
+        startGameplay();
     });
 }

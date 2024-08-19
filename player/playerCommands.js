@@ -9,7 +9,8 @@ class Room {
     constructor(name, description) {
         this.name = name;
         this.description = description;
-        this.exits = {}; // Exits will be added dynamically
+        this.exits = {};
+        this.items = {};
     }
 }
 
@@ -47,11 +48,11 @@ function generateRandomRoom() {
     const roomName = roomNames[randomIndex] + Math.floor(Math.random() * 1000);
     const roomDescription = roomDescriptions[randomIndex];
 
-    logDebug(`${roomName} - ${roomDescription}`);
+    logDebug(`${roomName}, ${roomDescription}`);
 
     const newRoom = new Room(roomName, roomDescription);
 
-    // Optionally add exits to the new room
+    // add random exits to the room using rng
     const directions = ["north", "south", "east", "west"];
     directions.forEach(direction => {
         if (Math.random() > 0.5) { // Randomly decide whether to add an exit
@@ -59,7 +60,14 @@ function generateRandomRoom() {
             newRoom.exits[direction] = targetRoom;
         }
     });
-    
+
+    if (Object.keys(newRoom.exits).length === 0) { // if there are no exits after the direction foreach rng, just add a singular random exit
+        const targetRoom = roomNames[Math.floor(Math.random() * roomNames.length)] + Math.floor(Math.random() * 1000);
+        newRoom.exits[directions] = targetRoom;
+        const randomDirection = directions[Math.floor(Math.random() * directions.length)];
+        newRoom.exits[randomDirection] = targetRoom;
+    }
+
     return newRoom;
 }
 
@@ -72,7 +80,7 @@ function updatePlayerVariable(data) {
 const commands = {
     look: (item) => {
         updatePlayerVariable();
-        const room = player.room;
+        const room = rooms[player.room] || player.room;
         let roomDescription = room.description
         if (!item) {
             if (fs.existsSync(`./ASCII/${player.room}.txt`)) { // if there is an ASCII art file for the room that we are in, display it
@@ -90,14 +98,14 @@ const commands = {
             log('I don\'t see that here.', 'red');
         }
     },
-    move: (exit) => {
+    move: async (exit) => {
         if (!exit) return log("Where would you like to move to?", 'yellow');
-        const room = player.room;
+        const room = rooms[player.room] || player.room;
         let targetRoom = room.exits[exit];
-
+        await logDebug(targetRoom);
         if (!targetRoom) return log("I don't see that exit.", 'red');
     
-        if (rooms[targetRoom.name]) { // If the target room is predefined
+        if (rooms[player.room].exits[exit]) { // If the target room is predefined
             player.room = rooms[targetRoom.name];
             updatePlayerVariable(player);
             log(commands['look']());
@@ -150,6 +158,7 @@ function gameWaitForInput(pause) {
         if (error) {
             log(error, 'red');
         }
+        if (player.room === 'gameSTART') return startGame(); // if the player is in the starting call, we will start the game
         term.clear();
         handleCommand(input);
         term.nextLine(2);
@@ -157,17 +166,27 @@ function gameWaitForInput(pause) {
     });
 }
 
-function startGame(pause) {
+function startGameplay(pause) {
+    updatePlayerVariable();
     term.clear();
         // extra indented code = temporary code to generate a random room for testing
-        updatePlayerVariable();
-        player.room = generateRandomRoom();
-        updatePlayerVariable(player);
+        // player.room = generateRandomRoom();
+        // updatePlayerVariable(player);
     log(commands['look']()); // on game launch, we will run the look command to display the current room to continue where we left off
     term.nextLine(2);
     gameWaitForInput(pause);
 }
 
+function startGame() { // this function will be called when the game is ACTUALLY, ACTUALLY starting. so we are now procedurally generating and all that
+    term.clear();
+    updatePlayerVariable();
+    player.room = generateRandomRoom();
+    updatePlayerVariable(player);
+    log(commands['look']()); // on game launch, we will run the look command to display the current room to continue where we left off
+    term.nextLine(2);
+    gameWaitForInput();
+}
+
 module.exports = {
-    startGame
+    startGameplay
 };

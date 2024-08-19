@@ -1,9 +1,9 @@
 {
     "start": {
         "description":"You glance at your surroundings, the smell of damp earth fills your nostrils. You are in a dark cave. You have no memory of how you got here. You see a lit hole in the wall infront of you.",
-        "exits": [{
+        "exits": {
             "hole":"shrineSTART"
-        }]
+        }
     },
     "shrineSTART": {
         "description":"As you go through the hole, you notice you are now in a shrine. There are lit candles and a statue of what appears to be a god of death. You notice a glowing orb on the altar.",
@@ -27,9 +27,9 @@
                 "description": "The orb continues to glow."
             }
         },
-        "exits": [{
+        "exits": {
             "door":"gameSTART"
-        }]
+        }
     },
     "gameSTART": {
         "description":"You notice you are inside a dungeon, the walls are damp and the air is musty. There are two paths ahead of you, one to the left and one to the right.",
