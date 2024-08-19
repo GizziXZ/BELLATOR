@@ -31,12 +31,14 @@ if (!player.name) { // game intro sequence
         const input = await waitForResponse("Welcome back. Warrior. What is your name?", 80, 150, 25, 2);
         player.name = input;
         player.room = "start";
-        savePlayer(player);
+        await savePlayer(player);
         await term.slowTyping(`...${input}, that is your name? Interesting.`, {delay: 80});
+        term.once('key', () => {
+            startGame();
+        });
+    });
+} else {
+    term.once('key', () => {
+        startGame();
     });
 }
-
-term.once('key', () => {
-    term.clear();
-    startGame();
-});

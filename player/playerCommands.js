@@ -3,10 +3,17 @@ const rooms = require('../data/rooms.json');
 const fs = require('fs');
 const { log, savePlayer } = require('../util/util');
 
-let player = JSON.parse(fs.readFileSync('./player/player.json', 'utf8'));
+let player;
+
+function updatePlayerVariable(data) {
+    if (!data) return player = JSON.parse(fs.readFileSync('./player/player.json', 'utf8'));
+    fs.writeFileSync('./player/player.json', JSON.stringify(data));
+    return player = JSON.parse(fs.readFileSync('./player/player.json', 'utf8'));
+}
 
 const commands = {
     look: (item) => {
+        updatePlayerVariable();
         const room = rooms[player.room];
         let roomDescription = `${room.description}`;
         if (!item) {
@@ -27,37 +34,53 @@ const commands = {
     },
     move: (exit) => {
         if (!exit) return log("Where would you like to move to?", 'yellow');
-        const exit = room.exits[exit];
-        if (typeof exit === 'object' && Object.values(room.exits)[0]) { // the exit already has a predefined room, meaning it's not random
-            player.room = Object.values(room.exits)[0];
-            savePlayer(player);
+        const room = rooms[player.room];
+        let targetRoom;
+    
+        // find the exit in the current room
+        const foundExit = room.exits.find(item => typeof item === 'string' ? item === exit : Object.keys(item)[0] === exit);
+    
+        if (typeof foundExit === 'string') {
+            targetRoom = foundExit; // If the exit is a string, use it directly
+        } else if (typeof foundExit === 'object') {
+            targetRoom = Object.values(foundExit)[0]; // If the exit is an object, extract the room name
+        }
+    
+        if (targetRoom && rooms[targetRoom]) { // If the target room is predefined
+            player.room = targetRoom;
+            // savePlayer(player);
+            updatePlayerVariable(player);
             log(commands['look']());
-        } else { // the exit is random so we need to determine the room
+        } else { // If the target room is random
             function getRandomRoom() {
                 const randomRoomIndex = Math.floor(Math.random() * Object.keys(rooms).length);
-                const randomRoom = Object.values(rooms)[randomRoomIndex]; // get a random room
-                if (!randomRoom.random) return getRandomRoom(); // if the room can't be randomly generated, try again
+                const randomRoom = Object.values(rooms)[randomRoomIndex];
+                if (!randomRoom.random) return getRandomRoom();
                 return randomRoom;
             }
-            const targetRoom = getRandomRoom();
+            const randomRoom = getRandomRoom();
             if (!player.generatedPath[player.room]) {
                 player.generatedPath[player.room] = {};
             }
-            player.generatedPath[player.room][exit] = Object.keys(rooms).find(key => rooms[key] === targetRoom);
-            player.room = Object.keys(rooms).find(key => rooms[key] === targetRoom);
-            savePlayer(player);
+            player.generatedPath[player.room][exit] = Object.keys(rooms).find(key => rooms[key] === randomRoom);
+            // player.generatedPath[player.room][exit] = 
+            player.room = Object.keys(rooms).find(key => rooms[key] === randomRoom);
+            // savePlayer(player);
+            updatePlayerVariable(player);
         }
-        // player.room = targetRoom;
-        // savePlayer(player);
-        // log(commands['look']());
     },
     interact: (item) => {
         if (!item) return log("What would you like to interact with?", 'yellow');
+        const room = rooms[player.room];
         const interact = room.items[item].interact;
         if (interact) {
-            log(interact, 'yellow');
+            log(interact.description, 'yellow');
             if (interact.effect) {
-                // TODO: implement effect
+                const effect = interact.effect;
+                if (effect.type === 'move') {
+                    player.room = effect.value;
+                    updatePlayerVariable(player);
+                }
             }
         } else if (!interact) {
             log("You can't interact with that.", 'red');
@@ -66,7 +89,7 @@ const commands = {
         }
     },
     help: () => {
-        log("Commands: look, move, help, interact", 'yellow');
+        log(`Commands: ${Object.keys(commands)}`, 'yellow');
     }
 };
 
@@ -83,7 +106,7 @@ function handleCommand(command) {
 function gameWaitForInput(pause) {
     if (pause === false) return; // i think it makes more sense to have startGame(false) stop the game than startGame(true). also, this just stops it from running commands so we can do cutscenes or something
     term.inputField({
-        autoComplete: ['look', 'move'],
+        autoComplete: Object.keys(commands), // autocomplete the commands
         autoCompleteHint: true
     }, (error, input) => {
         if (error) {
@@ -97,6 +120,7 @@ function gameWaitForInput(pause) {
 }
 
 function startGame(pause) {
+    term.clear();
     log(commands['look']()); // on game launch, we will run the look command to display the current room to continue where we left off
     term.nextLine(2);
     gameWaitForInput(pause);
