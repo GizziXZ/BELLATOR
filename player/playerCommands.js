@@ -62,8 +62,19 @@ const commands = {
             if (!player.generatedPath[player.room]) {
                 player.generatedPath[player.room] = {};
             }
-            player.generatedPath[player.room][exit] = Object.keys(rooms).find(key => rooms[key] === randomRoom);
-            // player.generatedPath[player.room][exit] = 
+            // player.generatedPath[player.room][exit] = Object.keys(rooms).find(key => rooms[key] === randomRoom);
+            // FIXME this is so complicated, am i even doing this right or is there an easier way to do what im trying to do
+            Object.values(room.exits).forEach(exit => { // exit is the exit name
+                if (!player.generatedPath[player.room]) {
+                    player.generatedPath[player.room] = {};
+                }
+                if (!player.generatedPath[player.room][exit]) {
+                    player.generatedPath[player.room][exit] = {};
+                }
+                if (randomRoom) {
+                    player.generatedPath[player.room][exit][randomRoom] = {};
+                }
+            });
             player.room = Object.keys(rooms).find(key => rooms[key] === randomRoom);
             // savePlayer(player);
             updatePlayerVariable(player);
