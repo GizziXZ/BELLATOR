@@ -24,7 +24,7 @@ term.on('key', (name) => {
 
 log("Set your terminal to full screen and press any key to continue...");
 
-if (!player.name) {
+if (!player.name) { // game intro sequence
     term.once('key', async () => {
         term.clear();
         log(fs.readFileSync('./ASCII/start.txt', 'utf8'));
@@ -35,9 +35,8 @@ if (!player.name) {
         await term.slowTyping(`...${input}, that is your name? Interesting.`, {delay: 80});
     });
 }
+
 term.once('key', () => {
     term.clear();
-    // log("You glance at your surroundings, the smell of damp earth fills your nostrils. You are in a dark cave. You have no memory of how you got here. You see a lit doorway.");
-    // term.nextLine(1);
     startGame();
 });

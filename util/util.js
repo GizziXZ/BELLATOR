@@ -8,9 +8,8 @@ const fs = require('fs/promises');
  * @param {string} color - The color of the message.
  */
 function log(message, color) { // green is default unless specified otherwise
-    term[color || 'green'](message);
+    term[color || 'brightGreen'](message);
 }
-
 
 /**
  * Waits for a response and displays a dialogue on the terminal.

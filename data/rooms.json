@@ -2,15 +2,31 @@
     "start": {
         "description":"You glance at your surroundings, the smell of damp earth fills your nostrils. You are in a dark cave. You have no memory of how you got here. You see a lit doorway.",
         "exits": {
-            "doorway":"shrine"
+            "doorway":"shrineSTART"
         }
     },
-    "shrine": {
+    "shrineSTART": {
         "description":"As you enter the room, you notice you are in a shrine. There are lit candles and a statue of what appears to be a god of death. You notice a glowing orb on the altar.",
         "items": {
             "orb": {
-                "description": "A glowing orb that seems to be pulsating with energy."
+                "description": "A glowing orb that seems to be pulsating with energy. It seems to be calling out to you.",
+                "interact": "You reach out to touch the orb and as you do, you feel a surge of energy coursing through your body. You feel a sense of power and purpose. You feel like you have been chosen by the god of death.",
+                "effect": {
+                    "type": "move",
+                    "value": "shrine"
+                }
             }
+        }
+    },
+    "shrine": {
+        "description":"You are in the shrine. The orb is still glowing on the altar. a sense of purpose fills you.",
+        "items": {
+            "orb": {
+                "description": "The orb continues to glow."
+            }
+        },
+        "exits": {
+            "door":"gameSTART"
         }
     }
 }
