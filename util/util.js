@@ -46,7 +46,9 @@ async function waitForResponse(dialogue, delay, baseColumn, baseLine, nextLine) 
 
 function logDebug(message) { // used for debugging since using the terminal isn't ideal for this project
     message = message.toString();
-    message = `${new Date().toLocaleString('en-US', { hour: 'numeric', minute: 'numeric', hour12: true })} - ${message}\n`;
+    const stack = new Error().stack;
+    const caller = stack.split('\n')[2].trim();
+    message = `${new Date().toLocaleString('en-US', { hour: 'numeric', minute: 'numeric', hour12: true })} (${message} - ${caller})\n`;
     if (!existsSync('./log.txt')) {
         fs.writeFile('./log.txt', message);
     } else {

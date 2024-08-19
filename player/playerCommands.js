@@ -46,8 +46,21 @@ function generateRandomRoom() {
     const randomIndex = Math.floor(Math.random() * roomNames.length);
     const roomName = roomNames[randomIndex] + Math.floor(Math.random() * 1000);
     const roomDescription = roomDescriptions[randomIndex];
+
+    logDebug(`${roomName} - ${roomDescription}`);
+
+    const newRoom = new Room(roomName, roomDescription);
+
+    // Optionally add exits to the new room
+    const directions = ["north", "south", "east", "west"];
+    directions.forEach(direction => {
+        if (Math.random() > 0.5) { // Randomly decide whether to add an exit
+            const targetRoom = roomNames[Math.floor(Math.random() * roomNames.length)] + Math.floor(Math.random() * 1000);
+            newRoom.exits[direction] = targetRoom;
+        }
+    });
     
-    return new Room(roomName, roomDescription);
+    return newRoom;
 }
 
 function updatePlayerVariable(data) {
@@ -59,17 +72,17 @@ function updatePlayerVariable(data) {
 const commands = {
     look: (item) => {
         updatePlayerVariable();
-        const room = rooms[player.room];
-        let roomDescription = `${room.description}`;
+        const room = player.room;
+        let roomDescription = room.description
         if (!item) {
             if (fs.existsSync(`./ASCII/${player.room}.txt`)) { // if there is an ASCII art file for the room that we are in, display it
                 log(fs.readFileSync(`./ASCII/${player.room}.txt`, 'utf8'));
                 term.nextLine(1);
             }
-            let exits = room.exits ? room.exits.map(item => typeof item === 'string' ? item : Object.keys(item)).join(', ') : '';
-            let items = room.items ? Object.keys(room.items).join(', ') : '';
+            let exits = room.exits ? Object.keys(room.exits).join(', ') : '';
+            // let items = room.items ? Object.keys(room.items).join(', ') : '';
             if (exits) roomDescription += `\n\nExits: ${exits}`;
-            if (items) roomDescription += `\n\nItems: ${items}`;
+            // if (items) roomDescription += `\n\nItems: ${items}`;
             log(roomDescription, 'yellow');
         } else if (room.items && room.items[item]) {
             log(room.items[item].description, 'yellow'); // if looking at an item
@@ -79,29 +92,17 @@ const commands = {
     },
     move: (exit) => {
         if (!exit) return log("Where would you like to move to?", 'yellow');
-        const room = rooms[player.currentRoom.name];
-        let targetRoom;
-    
-        // find the exit in the current room
-        const foundExit = room.exits.find(item => typeof item === 'string' ? item === exit : Object.keys(item)[0] === exit);
+        const room = player.room;
+        let targetRoom = room.exits[exit];
 
-        if (!foundExit) return log("I don't see that exit.", 'red');
+        if (!targetRoom) return log("I don't see that exit.", 'red');
     
-        if (typeof foundExit === 'string') {
-            targetRoom = foundExit; // If the exit is a string, use it directly
-        } else if (typeof foundExit === 'object') {
-            targetRoom = Object.values(foundExit)[0]; // If the exit is an object, extract the room name
-        }
-    
-        if (targetRoom && rooms[targetRoom]) { // If the target room is predefined
-            player.currentRoom = rooms[targetRoom];
-            // savePlayer(player);
+        if (rooms[targetRoom.name]) { // If the target room is predefined
+            player.room = rooms[targetRoom.name];
             updatePlayerVariable(player);
             log(commands['look']());
         } else { // If the target room is random
-            const newRoom = generateRandomRoom();
-            room.exits[exit] = newRoom;
-            player.currentRoom = newRoom;
+            player.room = generateRandomRoom();
             updatePlayerVariable(player);
             log(commands['look']());
         }
@@ -158,6 +159,10 @@ function gameWaitForInput(pause) {
 
 function startGame(pause) {
     term.clear();
+        // extra indented code = temporary code to generate a random room for testing
+        updatePlayerVariable();
+        player.room = generateRandomRoom();
+        updatePlayerVariable(player);
     log(commands['look']()); // on game launch, we will run the look command to display the current room to continue where we left off
     term.nextLine(2);
     gameWaitForInput(pause);
