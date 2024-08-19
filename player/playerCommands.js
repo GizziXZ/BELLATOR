@@ -1,7 +1,7 @@
 const term = require('terminal-kit').terminal;
 const rooms = require('../data/rooms.json');
 const fs = require('fs');
-const { log, savePlayer } = require('../util/util');
+const { log, savePlayer, logDebug } = require('../util/util');
 
 let player;
 
@@ -56,7 +56,7 @@ const commands = {
                 const randomRoomIndex = Math.floor(Math.random() * Object.keys(rooms).length);
                 const randomRoom = Object.values(rooms)[randomRoomIndex];
                 if (!randomRoom.random) return getRandomRoom();
-                return randomRoom;
+                return randomRoom
             }
             const randomRoom = getRandomRoom();
             if (!player.generatedPath[player.room]) {
@@ -71,7 +71,8 @@ const commands = {
                 if (!player.generatedPath[player.room][exit]) {
                     player.generatedPath[player.room][exit] = {};
                 }
-                if (randomRoom) {
+                logDebug(JSON.stringify(randomRoom));
+                if (randomRoom) { // randomroom will need to be json stringified before saving
                     player.generatedPath[player.room][exit][randomRoom] = {};
                 }
             });

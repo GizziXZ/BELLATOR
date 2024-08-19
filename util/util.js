@@ -1,5 +1,6 @@
 const term = require('terminal-kit').terminal;
 const fs = require('fs/promises');
+const { existsSync } = require('fs');
 
 /**
  * Logs a message to the terminal.
@@ -43,6 +44,16 @@ async function waitForResponse(dialogue, delay, baseColumn, baseLine, nextLine) 
     });
 }
 
+function logDebug(message) { // used for debugging since using the terminal isn't ideal for this project
+    message = message.toString();
+    message = `${new Date().toLocaleString('en-US', { hour: 'numeric', minute: 'numeric', hour12: true })} - ${message}\n`;
+    if (!existsSync('./log.txt')) {
+        fs.writeFile('./log.txt', message);
+    } else {
+        fs.appendFile('./log.txt', message);
+    }
+}
+
 async function savePlayer(data) {
     await fs.writeFile('./player/player.json', JSON.stringify(data));
 }
@@ -50,5 +61,6 @@ async function savePlayer(data) {
 module.exports = {
     log,
     waitForResponse,
-    savePlayer
+    savePlayer,
+    logDebug
 };
