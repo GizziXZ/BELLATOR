@@ -14,7 +14,7 @@ const commands = {
                 log(fs.readFileSync(`./ASCII/${player.room}.txt`, 'utf8'));
                 term.nextLine(1);
             }
-            let exits = room.exits ? Object.keys(room.exits).join(', ') : '';
+            let exits = room.exits ? room.exits.map(item => typeof item === 'string' ? item : Object.keys(item)).join(', ') : '';
             let items = room.items ? Object.keys(room.items).join(', ') : '';
             if (exits) roomDescription += `\n\nExits: ${exits}`;
             if (items) roomDescription += `\n\nItems: ${items}`;
@@ -27,16 +27,39 @@ const commands = {
     },
     move: (exit) => {
         if (!exit) return log("Where would you like to move to?", 'yellow');
-        const targetroom = room.exits[exit];
-        player.room = targetroom;
-        savePlayer(player);
-        log(`You move to ${exit}`);
+        const exit = room.exits[exit];
+        if (typeof exit === 'object' && Object.values(room.exits)[0]) { // the exit already has a predefined room, meaning it's not random
+            player.room = Object.values(room.exits)[0];
+            savePlayer(player);
+            log(commands['look']());
+        } else { // the exit is random so we need to determine the room
+            function getRandomRoom() {
+                const randomRoomIndex = Math.floor(Math.random() * Object.keys(rooms).length);
+                const randomRoom = Object.values(rooms)[randomRoomIndex]; // get a random room
+                if (!randomRoom.random) return getRandomRoom(); // if the room can't be randomly generated, try again
+                return randomRoom;
+            }
+            const targetRoom = getRandomRoom();
+            if (!player.generatedPath[player.room]) {
+                player.generatedPath[player.room] = {};
+            }
+            player.generatedPath[player.room][exit] = Object.keys(rooms).find(key => rooms[key] === targetRoom);
+            player.room = Object.keys(rooms).find(key => rooms[key] === targetRoom);
+            savePlayer(player);
+        }
+        // player.room = targetRoom;
+        // savePlayer(player);
+        // log(commands['look']());
     },
     interact: (item) => {
         if (!item) return log("What would you like to interact with?", 'yellow');
-        if (room.items[item]) {
-            log(room.items[item].interact, 'yellow');
-        } else if (!room.items[item].interact) {
+        const interact = room.items[item].interact;
+        if (interact) {
+            log(interact, 'yellow');
+            if (interact.effect) {
+                // TODO: implement effect
+            }
+        } else if (!interact) {
             log("You can't interact with that.", 'red');
         } else {
             log("I don't see that here.", 'red');

@@ -1,4 +1,7 @@
 {
     "name":"",
-    "room":""
+    "room":"",
+    "health": 20,
+    "inventory": {},
+    "generatedpath": {}
 }
