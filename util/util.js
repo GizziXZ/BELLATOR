@@ -44,17 +44,30 @@ async function waitForResponse(dialogue, delay, baseColumn, baseLine, nextLine) 
     });
 }
 
-function asciiLook(ASCII, message) {
+
+/**
+ * Displays ASCII art and a message on the terminal.
+ * 
+ * @param {string} ASCII - The ASCII art to be displayed.
+ * @param {string} message - The message to be displayed.
+ */
+async function asciiLook(ASCII, message) {
     term.clear();
     const mid = Math.floor(term.width / 2);
-    const lines = message.split('\n');
+    const regex = new RegExp(`.{1,${term.width - mid + 1}}`,'g')
+    const lines = await message.match(regex);
+    await logDebug(lines);
     log(ASCII); // ASCII art will be printed on the left side
+    term.moveTo(mid, 1); // move to the middle of the terminal
     // term.column(mid + 1); // using the middle of the terminal as a wall
     lines.forEach(line => {
-        term.moveTo(mid + 1, 1);
+        line = line.trim(); // remove useless whitespace
+        logDebug(line);
+        term.column(mid);
         log(line)
         term.nextLine(1);
-    })
+        term.column(mid); // we are doing column again because, what if the next line isn't a message line and doesn't end up calling term.column?
+    });
 }
 
 async function logDebug(message) { // used for debugging since using the terminal isn't ideal for this project
