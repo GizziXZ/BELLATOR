@@ -4,6 +4,7 @@ const fs = require('fs');
 const { log, savePlayer, logDebug, asciiLook } = require('../util/util');
 
 let player;
+let hasAsciiArt = false; // Global variable to track ASCII art availability
 
 class Room {
     constructor(name, description) {
@@ -81,16 +82,17 @@ const commands = {
     look: (item) => {
         updatePlayerVariable();
         const room = rooms[player.room] || player.room;
-        let roomDescription = room.description
+        let roomDescription = room.description;
+        hasAsciiArt = false; // Reset the ASCII art flag
+
         if (!item) {
             let exits = room.exits ? Object.keys(room.exits).join(', ') : '';
-            // let items = room.items ? Object.keys(room.items).join(', ') : '';
+            let items = room.items ? Object.keys(room.items).join(', ') : '';
             if (exits) roomDescription += `\n\nExits: ${exits}`;
-            // if (items) roomDescription += `\n\nItems: ${items}`;
+            if (items) roomDescription += `\n\nItems: ${items}`;
             if (fs.existsSync(`./ASCII/${player.room}.txt`)) { // if there is an ASCII art file for the room that we are in, display it
+                hasAsciiArt = true;
                 asciiLook(fs.readFileSync(`./ASCII/${player.room}.txt`, 'utf8'), roomDescription);
-                term.nextLine(1);
-                return;
             }
             log(roomDescription, 'yellow');
         } else if (room.items && room.items[item]) {
@@ -108,7 +110,6 @@ const commands = {
     
         if (rooms[player.room].exits[exit]) { // If the target room is predefined
             player.room = targetRoom;
-            // await logDebug(JSON.stringify(targetRoom));
             updatePlayerVariable(player);
             log(commands['look']());
         } else { // If the target room is random
@@ -152,10 +153,11 @@ function handleCommand(command) {
 }
 
 function gameWaitForInput(pause) {
-    if (pause === false) return; // i think it makes more sense to have startGame(false) stop the game than startGame(true). also, this just stops it from running commands so we can do cutscenes or something
+    if (pause === false) return;
+    if (hasAsciiArt) term.column(term.width / 2); // i tried adding x coordinate to inputField options, just doesn't work. so i need to column() keep in mind, twice btw (since it's also done at the end of util.js/asciiLook)
     term.inputField({
-        autoComplete: Object.keys(commands), // autocomplete the commands
-        autoCompleteHint: true
+        autoComplete: Object.keys(commands),
+        autoCompleteHint: true,
     }, (error, input) => {
         if (error) {
             log(error, 'red');
@@ -171,9 +173,6 @@ function gameWaitForInput(pause) {
 function startGameplay(pause) {
     updatePlayerVariable();
     term.clear();
-        // extra indented code = temporary code to generate a random room for testing
-        // player.room = generateRandomRoom();
-        // updatePlayerVariable(player);
     log(commands['look']()); // on game launch, we will run the look command to display the current room to continue where we left off
     term.nextLine(2);
     gameWaitForInput(pause);

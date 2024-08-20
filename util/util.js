@@ -44,7 +44,6 @@ async function waitForResponse(dialogue, delay, baseColumn, baseLine, nextLine) 
     });
 }
 
-
 /**
  * Displays ASCII art and a message on the terminal.
  * 
