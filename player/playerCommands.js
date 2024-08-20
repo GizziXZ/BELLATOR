@@ -1,7 +1,7 @@
 const term = require('terminal-kit').terminal;
 const rooms = require('../data/rooms.json');
 const fs = require('fs');
-const { log, savePlayer, logDebug } = require('../util/util');
+const { log, savePlayer, logDebug, asciiLook } = require('../util/util');
 
 let player;
 
@@ -83,14 +83,15 @@ const commands = {
         const room = rooms[player.room] || player.room;
         let roomDescription = room.description
         if (!item) {
-            if (fs.existsSync(`./ASCII/${player.room}.txt`)) { // if there is an ASCII art file for the room that we are in, display it
-                log(fs.readFileSync(`./ASCII/${player.room}.txt`, 'utf8'));
-                term.nextLine(1);
-            }
             let exits = room.exits ? Object.keys(room.exits).join(', ') : '';
             // let items = room.items ? Object.keys(room.items).join(', ') : '';
             if (exits) roomDescription += `\n\nExits: ${exits}`;
             // if (items) roomDescription += `\n\nItems: ${items}`;
+            if (fs.existsSync(`./ASCII/${player.room}.txt`)) { // if there is an ASCII art file for the room that we are in, display it
+                asciiLook(fs.readFileSync(`./ASCII/${player.room}.txt`, 'utf8'), roomDescription);
+                term.nextLine(1);
+                return;
+            }
             log(roomDescription, 'yellow');
         } else if (room.items && room.items[item]) {
             log(room.items[item].description, 'yellow'); // if looking at an item
@@ -102,11 +103,12 @@ const commands = {
         if (!exit) return log("Where would you like to move to?", 'yellow');
         const room = rooms[player.room] || player.room;
         let targetRoom = room.exits[exit];
-        await logDebug(targetRoom);
+
         if (!targetRoom) return log("I don't see that exit.", 'red');
     
         if (rooms[player.room].exits[exit]) { // If the target room is predefined
-            player.room = rooms[targetRoom.name];
+            player.room = targetRoom;
+            // await logDebug(JSON.stringify(targetRoom));
             updatePlayerVariable(player);
             log(commands['look']());
         } else { // If the target room is random

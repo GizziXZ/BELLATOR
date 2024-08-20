@@ -8,7 +8,7 @@ const { existsSync } = require('fs');
  * @param {string} message - The message to be logged.
  * @param {string} color - The color of the message.
  */
-function log(message, color) { // green is default unless specified otherwise
+function log(message, color) { // brightGreen is default unless specified otherwise
     term[color || 'brightGreen'](message);
 }
 
@@ -44,8 +44,21 @@ async function waitForResponse(dialogue, delay, baseColumn, baseLine, nextLine) 
     });
 }
 
+function asciiLook(ASCII, message) {
+    term.clear();
+    const mid = Math.floor(term.width / 2);
+    const lines = message.split('\n');
+    log(ASCII); // ASCII art will be printed on the left side
+    // term.column(mid + 1); // using the middle of the terminal as a wall
+    lines.forEach(line => {
+        term.moveTo(mid + 1, 1);
+        log(line)
+        term.nextLine(1);
+    })
+}
+
 async function logDebug(message) { // used for debugging since using the terminal isn't ideal for this project
-    message = message.toString();
+    // message = message.toString();
     const stack = new Error().stack;
     const caller = stack.split('\n')[2].trim();
     message = `${new Date().toLocaleString('en-US', { hour: 'numeric', minute: 'numeric', hour12: true })} - ${message} (${caller})\n`;
@@ -64,5 +77,6 @@ module.exports = {
     log,
     waitForResponse,
     savePlayer,
-    logDebug
+    logDebug,
+    asciiLook
 };
