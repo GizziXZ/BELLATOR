@@ -56,7 +56,7 @@ async function asciiLook(ASCII, message) {
     const regex = new RegExp(`.{1,${term.width - mid + 1}}`,'g')
     const segments = message.split('\n');
     // const lines = await message.match(regex);
-    await logDebug(segments);
+    // await logDebug(segments);
     log(ASCII); // ASCII art will be printed on the left side
     term.moveTo(mid, 1); // move to the middle of the terminal
     // term.column(mid + 1); // using the middle of the terminal as a wall

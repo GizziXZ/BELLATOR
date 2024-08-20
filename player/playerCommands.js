@@ -6,6 +6,7 @@ const { log, savePlayer, logDebug, asciiLook } = require('../util/util');
 let player;
 let hasAsciiArt = false; // Global variable to track ASCII art availability
 let lines; // Global variable to store the amount of lines in the ASCII message
+let from; // TODO - save from in player
 
 class Room {
     constructor(name, description) {
@@ -16,26 +17,7 @@ class Room {
     }
 }
 
-class Player {
-    constructor(startRoom) {
-        this.currentRoom = startRoom;
-        this.path = [startRoom.name];
-    }
-    
-    move(exit) {
-        if (this.currentRoom.exits[exit]) {
-            this.currentRoom = this.currentRoom.exits[exit];
-            this.path.push(this.currentRoom.name);
-        } else {
-            const newRoom = generateRandomRoom();
-            this.currentRoom.exits[exit] = newRoom;
-            this.currentRoom = newRoom;
-            this.path.push(newRoom.name);
-        }
-    }
-}
-
-// temporary function to generate a random room
+// function to generate a random room
 function generateRandomRoom() {
     const roomNames = ["Cave", "Dungeon", "Hall", "Chamber", "Crypt"];
     const roomDescriptions = [
@@ -56,27 +38,33 @@ function generateRandomRoom() {
 
     // add random exits to the room using rng
     const directions = ["north", "south", "east", "west"];
-    directions.forEach(direction => {
-        if (Math.random() > 0.5) { // Randomly decide whether to add an exit
-            const targetRoom = roomNames[Math.floor(Math.random() * roomNames.length)] + Math.floor(Math.random() * 1000);
-            newRoom.exits[direction] = targetRoom;
-        }
-    });
-
-    if (Object.keys(newRoom.exits).length === 0) { // if there are no exits after the direction foreach rng, just add a singular random exit
-        const targetRoom = roomNames[Math.floor(Math.random() * roomNames.length)] + Math.floor(Math.random() * 1000);
-        newRoom.exits[directions] = targetRoom;
-        const randomDirection = directions[Math.floor(Math.random() * directions.length)];
-        newRoom.exits[randomDirection] = targetRoom;
+    function setDirections() {
+        directions.forEach(direction => {
+            if (Math.random() > 0.5) { // Randomly decide whether to add an exit
+                const targetRoom = roomNames[Math.floor(Math.random() * roomNames.length)] + Math.floor(Math.random() * 1000);
+                // prevent backtracking
+                if (direction === 'north' && from === 'south') return;
+                if (direction === 'south' && from === 'north') return;
+                if (direction === 'east' && from === 'west') return;
+                if (direction === 'west' && from === 'east') return;
+                newRoom.exits[direction] = targetRoom;
+            }
+        });
+        if (Object.keys(newRoom.exits).length === 0) setDirections(); // if no exits were added, try again
+        return newRoom;
     }
-
-    return newRoom;
+    return setDirections();
 }
 
 function updatePlayerVariable(data) {
     if (!data) return player = JSON.parse(fs.readFileSync('./player/player.json', 'utf8'));
     fs.writeFileSync('./player/player.json', JSON.stringify(data));
     return player = JSON.parse(fs.readFileSync('./player/player.json', 'utf8'));
+}
+
+function resetVariables() {
+    hasAsciiArt = false;
+    lines = undefined;
 }
 
 const commands = {
@@ -99,39 +87,43 @@ const commands = {
         if (!item) {
             // logDebug(JSON.stringify(room))
             if (!hasAsciiArt) {
-                lines = undefined;
+                resetVariables();
                 log(roomDescription, 'yellow');
+                term.nextLine(2);
             } else {
-                logDebug('ASCII art exists');
                 lines = await asciiLook(fs.readFileSync(`./ASCII/${player.room}.txt`, 'utf8'), roomDescription);
-                term.column(term.width / 2);
-                term.nextLine(1);
                 term.column(term.width / 2);
             }
         } else if (room.items && room.items[item]) {
+            resetVariables();
             log(room.items[item].description, 'yellow'); // if looking at an item
+            term.nextLine(2);
         } else {
+            resetVariables();
             log('I don\'t see that here.', 'red');
+            term.nextLine(1);
         }
     },
-    move: async (exit) => {
+    move: async (exit) => { // TODO - aliases
         if (!exit) return log("Where would you like to move to?", 'yellow');
         const room = rooms[player.room] || player.room;
         let targetRoom = room.exits[exit];
 
         if (!targetRoom) return log("I don't see that exit.", 'red');
+        from = player.room;
     
         if (rooms[player.room].exits[exit]) { // If the target room is predefined
             player.room = targetRoom;
             updatePlayerVariable(player);
-            log(commands['look']());
+            await commands['look']();
         } else { // If the target room is random
             player.room = generateRandomRoom();
             updatePlayerVariable(player);
-            log(commands['look']());
+            await commands['look']();
         }
     },
     interact: (item) => {
+        resetVariables();
         if (!item) return log("What would you like to interact with?", 'yellow');
         const room = rooms[player.room];
         const interact = room.items[item].interact;
@@ -155,31 +147,34 @@ const commands = {
     }
 };
 
-function handleCommand(command) {
+async function handleCommand(command) {
     const [action, target] = command.split(' ');
     if (commands[action]) {
-        commands[action](target);
+        await commands[action](target);
     } else {
-        term.nextLine(1);
         log("I don't understand that command.", 'red');
+        term.nextLine(1);
     }
 }
 
 function gameWaitForInput(pause) {
     if (pause === false) return;
-    // term.nextLine(1);
-    logDebug(lines);
-    if (!hasAsciiArt && !lines) term.nextLine(2);
-    term.inputField({
+    const options = {
         autoComplete: Object.keys(commands),
         autoCompleteHint: true,
-    }, (error, input) => {
+    }
+    if (!hasAsciiArt && !lines) options.y + 2;
+    else {
+        options.y = lines + 2;
+        options.x = term.width / 2;
+    }
+    term.inputField(options, async (error, input) => {
         if (error) {
             log(error, 'red');
         }
         if (player.room === 'gameSTART') return startGame(); // if the player is in the starting call, we will start the game
         term.clear();
-        handleCommand(input);
+        await handleCommand(input);
         gameWaitForInput();
     });
 }
