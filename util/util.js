@@ -60,20 +60,25 @@ async function asciiLook(ASCII, message) {
     log(ASCII); // ASCII art will be printed on the left side
     term.moveTo(mid, 1); // move to the middle of the terminal
     // term.column(mid + 1); // using the middle of the terminal as a wall
-    segments.forEach(segment => { // FIXME multiple \n in a row will only make 1 new line
+    let lineAmount = 0;
+    segments.forEach(segment => {
         const lines = segment.match(regex);
-        if (lines) { // might not need this
-            lines.forEach(line => {
-                line = line.trim(); // remove useless whitespace
-                // logDebug(line);
-                term.column(mid);
-                log(line)
-                term.nextLine(1);
-                term.column(mid); // we are doing column again because, what if the next line isn't a message line and doesn't end up calling term.column?
-            });
+        if (segment === '') {
+            term.nextLine(1);
+            lineAmount++;
+            return;
         }
+        lines.forEach(line => {
+            line = line.trim(); // remove useless whitespace
+            lineAmount++;
+            // logDebug(line);
+            term.column(mid);
+            log(line)
+            term.nextLine(1);
+            term.column(mid); // we are doing column again because, what if the next line isn't a message line and doesn't end up calling term.column?
+        });
     });
-    return segments.reduce((acc, segment) => acc + segment.match(regex).length, 0); // return total number of lines
+    return lineAmount; // return total number of lines
 }
 
 async function logDebug(message) { // used for debugging since using the terminal isn't ideal for this project

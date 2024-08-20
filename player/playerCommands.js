@@ -85,6 +85,7 @@ const commands = {
         const room = rooms[player.room] || player.room;
         let roomDescription = room.description;
         hasAsciiArt = false; // Reset the ASCII art flag
+        lines = undefined; // Reset the number of lines
         if (fs.existsSync(`./ASCII/${player.room}.txt`)) { // if there is an ASCII art file for the room that we are in, display it
             hasAsciiArt = true;
             // lines = await asciiLook(fs.readFileSync(`./ASCII/${player.room}.txt`, 'utf8'), roomDescription);
@@ -159,9 +160,13 @@ function handleCommand(command) {
 
 function gameWaitForInput(pause) {
     if (pause === false) return;
+    // term.nextLine(1);
+    logDebug(lines); // FIXME - even though its not supposed to be undefined, it is
+    if (!lines) term.nextLine(2);
     if (hasAsciiArt) {
         // logDebug(lines)
-        term.nextLine(lines);
+        // term.nextLine(1); // we're 2 lines under the descriptions/exits/items and whatever else
+        term.nextLine(lines - 2);
         term.column(term.width / 2); // i tried adding x coordinate to inputField options, just doesn't work. so i need to column() keep in mind, twice btw (since it's also done at the end of util.js/asciiLook)
     }
     term.inputField({
@@ -174,7 +179,6 @@ function gameWaitForInput(pause) {
         if (player.room === 'gameSTART') return startGame(); // if the player is in the starting call, we will start the game
         term.clear();
         handleCommand(input);
-        term.nextLine(2);
         gameWaitForInput();
     });
 }
