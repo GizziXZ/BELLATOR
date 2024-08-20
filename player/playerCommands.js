@@ -5,6 +5,7 @@ const { log, savePlayer, logDebug, asciiLook } = require('../util/util');
 
 let player;
 let hasAsciiArt = false; // Global variable to track ASCII art availability
+let lines; // Global variable to store the amount of lines in the ASCII message
 
 class Room {
     constructor(name, description) {
@@ -79,22 +80,26 @@ function updatePlayerVariable(data) {
 }
 
 const commands = {
-    look: (item) => {
+    look: async (item) => {
         updatePlayerVariable();
         const room = rooms[player.room] || player.room;
         let roomDescription = room.description;
         hasAsciiArt = false; // Reset the ASCII art flag
+        if (fs.existsSync(`./ASCII/${player.room}.txt`)) { // if there is an ASCII art file for the room that we are in, display it
+            hasAsciiArt = true;
+            // lines = await asciiLook(fs.readFileSync(`./ASCII/${player.room}.txt`, 'utf8'), roomDescription);
+            // return;
+        }
+
+        let exits = room.exits ? Object.keys(room.exits).join(', ') : '';
+        let items = room.items ? Object.keys(room.items).join(', ') : '';
+        if (exits) roomDescription += `\n\nExits: ${exits}`;
+        if (items) roomDescription += `\n\nItems: ${items}`;
 
         if (!item) {
-            let exits = room.exits ? Object.keys(room.exits).join(', ') : '';
-            let items = room.items ? Object.keys(room.items).join(', ') : '';
-            if (exits) roomDescription += `\n\nExits: ${exits}`;
-            if (items) roomDescription += `\n\nItems: ${items}`;
-            if (fs.existsSync(`./ASCII/${player.room}.txt`)) { // if there is an ASCII art file for the room that we are in, display it
-                hasAsciiArt = true;
-                asciiLook(fs.readFileSync(`./ASCII/${player.room}.txt`, 'utf8'), roomDescription);
-            }
-            log(roomDescription, 'yellow');
+            // logDebug(JSON.stringify(room))
+            if (!hasAsciiArt) log(roomDescription, 'yellow');
+            else lines = await asciiLook(fs.readFileSync(`./ASCII/${player.room}.txt`, 'utf8'), roomDescription);
         } else if (room.items && room.items[item]) {
             log(room.items[item].description, 'yellow'); // if looking at an item
         } else {
@@ -154,7 +159,11 @@ function handleCommand(command) {
 
 function gameWaitForInput(pause) {
     if (pause === false) return;
-    if (hasAsciiArt) term.column(term.width / 2); // i tried adding x coordinate to inputField options, just doesn't work. so i need to column() keep in mind, twice btw (since it's also done at the end of util.js/asciiLook)
+    if (hasAsciiArt) {
+        // logDebug(lines)
+        term.nextLine(lines);
+        term.column(term.width / 2); // i tried adding x coordinate to inputField options, just doesn't work. so i need to column() keep in mind, twice btw (since it's also done at the end of util.js/asciiLook)
+    }
     term.inputField({
         autoComplete: Object.keys(commands),
         autoCompleteHint: true,
@@ -170,21 +179,21 @@ function gameWaitForInput(pause) {
     });
 }
 
-function startGameplay(pause) {
+async function startGameplay(pause) {
     updatePlayerVariable();
     term.clear();
-    log(commands['look']()); // on game launch, we will run the look command to display the current room to continue where we left off
-    term.nextLine(2);
+    log(await commands['look']()); // on game launch, we will run the look command to display the current room to continue where we left off
+    // term.nextLine(2);
     gameWaitForInput(pause);
 }
 
-function startGame() { // this function will be called when the game is ACTUALLY, ACTUALLY starting. so we are now procedurally generating and all that
+async function startGame() { // this function will be called when the game is ACTUALLY, ACTUALLY starting. so we are now procedurally generating and all that
     term.clear();
     updatePlayerVariable();
     player.room = generateRandomRoom();
     updatePlayerVariable(player);
-    log(commands['look']()); // on game launch, we will run the look command to display the current room to continue where we left off
-    term.nextLine(2);
+    log(await commands['look']()); // on game launch, we will run the look command to display the current room to continue where we left off
+    // term.nextLine(2);
     gameWaitForInput();
 }
 
