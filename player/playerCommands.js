@@ -85,7 +85,6 @@ const commands = {
         const room = rooms[player.room] || player.room;
         let roomDescription = room.description;
         hasAsciiArt = false; // Reset the ASCII art flag
-        lines = undefined; // Reset the number of lines
         if (fs.existsSync(`./ASCII/${player.room}.txt`)) { // if there is an ASCII art file for the room that we are in, display it
             hasAsciiArt = true;
             // lines = await asciiLook(fs.readFileSync(`./ASCII/${player.room}.txt`, 'utf8'), roomDescription);
@@ -99,8 +98,16 @@ const commands = {
 
         if (!item) {
             // logDebug(JSON.stringify(room))
-            if (!hasAsciiArt) log(roomDescription, 'yellow');
-            else lines = await asciiLook(fs.readFileSync(`./ASCII/${player.room}.txt`, 'utf8'), roomDescription);
+            if (!hasAsciiArt) {
+                lines = undefined;
+                log(roomDescription, 'yellow');
+            } else {
+                logDebug('ASCII art exists');
+                lines = await asciiLook(fs.readFileSync(`./ASCII/${player.room}.txt`, 'utf8'), roomDescription);
+                term.column(term.width / 2);
+                term.nextLine(1);
+                term.column(term.width / 2);
+            }
         } else if (room.items && room.items[item]) {
             log(room.items[item].description, 'yellow'); // if looking at an item
         } else {
@@ -161,14 +168,8 @@ function handleCommand(command) {
 function gameWaitForInput(pause) {
     if (pause === false) return;
     // term.nextLine(1);
-    logDebug(lines); // FIXME - even though its not supposed to be undefined, it is
-    if (!lines) term.nextLine(2);
-    if (hasAsciiArt) {
-        // logDebug(lines)
-        // term.nextLine(1); // we're 2 lines under the descriptions/exits/items and whatever else
-        term.nextLine(lines - 2);
-        term.column(term.width / 2); // i tried adding x coordinate to inputField options, just doesn't work. so i need to column() keep in mind, twice btw (since it's also done at the end of util.js/asciiLook)
-    }
+    logDebug(lines);
+    if (!hasAsciiArt && !lines) term.nextLine(2);
     term.inputField({
         autoComplete: Object.keys(commands),
         autoCompleteHint: true,
@@ -186,7 +187,7 @@ function gameWaitForInput(pause) {
 async function startGameplay(pause) {
     updatePlayerVariable();
     term.clear();
-    log(await commands['look']()); // on game launch, we will run the look command to display the current room to continue where we left off
+    await commands['look'](); // on game launch, we will run the look command to display the current room to continue where we left off
     // term.nextLine(2);
     gameWaitForInput(pause);
 }
@@ -196,7 +197,7 @@ async function startGame() { // this function will be called when the game is AC
     updatePlayerVariable();
     player.room = generateRandomRoom();
     updatePlayerVariable(player);
-    log(await commands['look']()); // on game launch, we will run the look command to display the current room to continue where we left off
+    await commands['look'](); // on game launch, we will run the look command to display the current room to continue where we left off
     // term.nextLine(2);
     gameWaitForInput();
 }
