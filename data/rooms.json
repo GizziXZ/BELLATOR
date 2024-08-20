@@ -32,7 +32,7 @@
         }
     },
     "gameSTART": {
-        "description":"You notice you are inside a dungeon, the walls are damp and the air is musty. There is only one way out, going forward.",
+        "description":"You notice you are inside a dungeon, the walls are damp and the air is musty. There is only one way out, forward.",
         "exits": {
             "forward":""
         }

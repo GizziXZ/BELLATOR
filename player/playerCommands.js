@@ -6,7 +6,6 @@ const { log, savePlayer, logDebug, asciiLook } = require('../util/util');
 let player;
 let hasAsciiArt = false; // Global variable to track ASCII art availability
 let lines; // Global variable to store the amount of lines in the ASCII message
-let from; // TODO - save from in player
 
 class Room {
     constructor(name, description) {
@@ -32,13 +31,14 @@ function generateRandomRoom() {
     const roomName = roomNames[randomIndex] + Math.floor(Math.random() * 1000);
     const roomDescription = roomDescriptions[randomIndex];
 
-    logDebug(`${roomName}, ${roomDescription}`);
+    // logDebug(`${roomName}, ${roomDescription}`);
 
     const newRoom = new Room(roomName, roomDescription);
 
     // add random exits to the room using rng
     const directions = ["north", "south", "east", "west"];
     function setDirections() {
+        const from = player.from;
         directions.forEach(direction => {
             if (Math.random() > 0.5) { // Randomly decide whether to add an exit
                 const targetRoom = roomNames[Math.floor(Math.random() * roomNames.length)] + Math.floor(Math.random() * 1000);
@@ -104,15 +104,15 @@ const commands = {
             term.nextLine(1);
         }
     },
-    move: async (exit) => { // TODO - aliases
+    move: async (exit) => {
         if (!exit) return log("Where would you like to move to?", 'yellow');
         const room = rooms[player.room] || player.room;
         let targetRoom = room.exits[exit];
 
         if (!targetRoom) return log("I don't see that exit.", 'red');
-        from = player.room;
+        player.from = exit;
     
-        if (rooms[player.room].exits[exit]) { // If the target room is predefined
+        if (rooms[player.room] && rooms[player.room].exits[exit]) { // If the target room is predefined
             player.room = targetRoom;
             updatePlayerVariable(player);
             await commands['look']();
@@ -142,10 +142,32 @@ const commands = {
             log("I don't see that here.", 'red');
         }
     },
-    help: () => {
-        log(`Commands: ${Object.keys(commands)}`, 'yellow');
-    }
+    inventory: () => {
+        resetVariables();
+        const inventory = player.inventory;
+        const inventoryLength = Object.keys(player.inventory).length;
+        if (inventoryLength === 0) {
+            log("Your inventory is empty.", 'yellow');
+            term.nextLine(2);
+        } else {
+            log("Inventory:", 'yellow');
+            inventory.forEach(item => {
+            log(`- ${item}`, 'yellow');
+            });
+        }
+    },
+    // help: () => {
+    //     log(`Commands: ${Object.keys(commands)}`, 'yellow');
+    // }
 };
+
+// aliases
+commands.go = commands.move;
+commands.walk = commands.move;
+commands.examine = commands.look;
+commands.inspect = commands.look;
+commands.see = commands.look;
+commands.check = commands.look;
 
 async function handleCommand(command) {
     const [action, target] = command.split(' ');

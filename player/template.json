@@ -1,6 +1,7 @@
 {
     "name":"",
     "room":"",
+    "from":"",
     "health": 20,
     "inventory": {},
     "generatedPath": {}
