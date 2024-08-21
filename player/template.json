@@ -7,5 +7,6 @@
     "experience": 0,
     "souls": 0,
     "inventory": [],
+    "uniques": [],
     "generatedPath": {}
 }

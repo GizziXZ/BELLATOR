@@ -2,26 +2,33 @@
     "Potion": {
         "name": "Potion",
         "description": "It fills you with determination. Gain 5 Essence",
+        "use":"You drink the potion and feel life coursing through your veins",
         "type": "consumable",
         "effect": {
             "type": "heal",
             "value": 5
         },
-        "rarity": 0.09
+        "rarity": 0.09,
+        "unique": false,
+        "interactOnly": false
     },
     "Grimoire": {
         "name": "Grimoire",
         "description": "Jona doesn't like it when you talk about magic. Gain 10 experience",
+        "use":"You read the grimoire and feel a surge of knowledge. Jona disapproves.",
         "type": "consumable",
         "effect": {
             "type": "experience",
             "value": 10
         },
-        "rarity": 0.07
+        "rarity": 0.07,
+        "unique": false,
+        "interactOnly": false
     },
     "Void_Crystal": {
         "name": "Void Crystal",
         "description": "A crystal that has broken off from the void. Damage an enemy for 10 Essence at the cost of 5 Essence",
+        "use": "You crush the crystal and feel it take a part of you with it",
         "type": "consumable",
         "effect": {
             "type": "damage",
@@ -30,6 +37,21 @@
                 "essence": 5
             }
         },
-        "rarity": 0.06
+        "rarity": 0.06,
+        "unique": false,
+        "interactOnly": false
+    },
+    "Mirror": {
+        "name": "Mirror",
+        "description": "It shows you what you really are",
+        "interact": "Your reflection shows you a walking dead man. It's you. Your helmet is rusted and you see your own eyes behind the helmet. They show no sign of life. (You gain 1 level)",
+        "type": "consumable",
+        "effect": {
+            "type": "level",
+            "value": 1
+        },
+        "rarity": 0.8,
+        "unique": true,
+        "interactOnly": true
     }
 }

@@ -8,6 +8,8 @@ let player;
 let hasAsciiArt = false; // Global variable to track ASCII art availability
 let lines; // Global variable to store the amount of lines in the ASCII message
 
+// TODO - leveling/XP system
+
 class Room {
     constructor(name, description) {
         this.name = name;
@@ -39,6 +41,7 @@ function generateRandomRoom() {
 
     // add random items to the room using rng
     items.forEach(item => {
+        if (itemsJSON[item].unique && player.uniques.includes(item)) return; // Skip adding unique items that the player has already found
         if (Math.random() < itemsJSON[item].rarity) { // Randomly decide whether to add an item (based off the item's rarity)
             newRoom.items[itemsJSON[item].name] = item;
         }
@@ -89,7 +92,10 @@ const commands = {
         }
 
         let exits = room.exits ? Object.keys(room.exits).join(', ') : '';
-        let items = room.items ? Object.keys(room.items).join(', ') : '';
+        let items = room.items ? Object.keys(room.items).map(itemName => {
+            const itemData = itemsJSON[itemName];
+            return itemData.interactOnly ? `${itemName} (interact)` : itemName;
+        }).join(', ') : '';
         if (exits) roomDescription += `\n\nExits: ${exits}`;
         if (items) roomDescription += `\n\nItems: ${items}`;
 
@@ -144,19 +150,28 @@ const commands = {
             log("You need to specify what to use.", 'red');
             return term.nextLine(2);
         }
-        const room = rooms[player.room];
+        const room = player.room;
         const interact = room.items[item].interact;
         if (interact) {
+            if (itemsJSON[originalItemName].unique) player.uniques.push(room.items[originalItemName]); // add the unique item to the player's list of found uniques
+            delete room.items[originalItemName]; // remove the item from the room
             log(interact.description, 'yellow');
+            term.nextLine(2);
+            // effects
             if (interact.effect) {
                 const effect = interact.effect;
                 if (effect.type === 'move') {
                     player.room = effect.value;
                     updatePlayerVariable(player);
                 }
+                if (effect.type === 'level') {
+                    player.level += effect.value;
+                    updatePlayerVariable(player);
+                }
             }
         } else if (!interact) {
             log("You can't interact with that.", 'red');
+            term.nextLine(2);
         } else {
             log("I don't see that here.", 'red');
         }
@@ -189,14 +204,19 @@ const commands = {
         item = item.toLowerCase();
         const room = player.room;
         if (rooms[room]) return log("You can't take that.", 'red'); // if the room is predefined, you can't take anything
-        const roomItems = Object.keys(room.items).reduce((acc, key) => {
+        const roomItems = Object.keys(room.items).reduce((acc, key) => { // make the room items lowercase for easier comparison
             acc[key.toLowerCase()] = key;
             return acc;
         }, {});
-        if (roomItems[item]) {
-            const originalItemName = roomItems[item];
-            player.inventory.push(originalItemName);
-            delete room.items[originalItemName];
+        if (roomItems[item]) { // if the item exists in the room
+            const originalItemName = roomItems[item]; // get the original item name
+            if (itemsJSON[originalItemName].interactOnly) {
+                log("Try interacting with that item instead.", 'red');
+                return term.nextLine(2);
+            }
+            player.inventory.push(originalItemName); // add the item to the player's inventory
+            if (itemsJSON[originalItemName].unique) player.uniques.push(room.items[originalItemName]); // add the unique item to the player's list of found uniques
+            delete room.items[originalItemName]; // remove the item from the room
             updatePlayerVariable(player);
             log(`You took the ${originalItemName}.`, 'yellow');
             term.nextLine(2);
@@ -212,19 +232,20 @@ const commands = {
             return term.nextLine(2);
         }
         item = item.toLowerCase();
-        const inventory = player.inventory.map(i => i.toLowerCase());
+        const inventory = player.inventory.map(i => i.toLowerCase()); // make the inventory items lowercase for easier comparison
         const itemIndex = inventory.indexOf(item);
         if (itemIndex === -1) {
             log("You don't have that item.", 'red');
             term.nextLine(2);
         } else {
-            const originalItemName = player.inventory[itemIndex];
+            const originalItemName = player.inventory[itemIndex]; // get the original item name
             const itemData = itemsJSON[originalItemName];
             if (itemData.effect) {
-                log(`You used ${originalItemName}`, 'yellow');
+                log(`You used ${originalItemName}\n${itemData.use}`, 'yellow');
                 term.nextLine(2);
                 if (itemData.type === 'consumable') player.inventory.splice(itemIndex, 1); // remove the item from the inventory if it's a consumable
                 const effect = itemData.effect;
+                // effects
                 if (effect.type === 'heal') {
                     player.health += effect.value;
                     updatePlayerVariable(player);
@@ -239,7 +260,7 @@ const commands = {
             }
         }
     },
-    stats: () => { // TODO - add ascii art for player stats
+    stats: () => {
         resetVariables();
         asciiLook(fs.readFileSync('./ASCII/stats.txt'),`Name: ${player.name}\nEssence: ${player.health}\nLevel: ${player.level}\nXP: ${player.experience}\nSouls: ${player.souls}`, 'yellow', true);
         term.nextLine(2);
