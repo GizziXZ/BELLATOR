@@ -7,6 +7,17 @@
     "experience": 0,
     "souls": 0,
     "inventory": [],
+    "abilities": [{
+        "name": "Wraith's Prayer",
+        "description": "Sacrifice 5 Souls to Gain 3 Essence",
+        "effect": {
+            "type": "heal",
+            "value": 3,
+            "cost": {
+                "souls": 5
+            }
+        }
+    }],
     "uniques": [],
     "generatedPath": {}
 }

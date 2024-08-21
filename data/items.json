@@ -44,13 +44,13 @@
     "Mirror": {
         "name": "Mirror",
         "description": "It shows you what you really are",
-        "interact": "Your reflection shows you a walking dead man. It's you. Your helmet is rusted and you see your own eyes behind the helmet. They show no sign of life. (You gain 1 level)",
+        "interact": "Your reflection shows you a dead man walking. It's you. Your helmet is rusted and you see your own eyes behind the helmet. They show no sign of life. (You gain 1 level)",
         "type": "consumable",
         "effect": {
             "type": "level",
             "value": 1
         },
-        "rarity": 0.8,
+        "rarity": 0.03,
         "unique": true,
         "interactOnly": true
     }

@@ -9,6 +9,8 @@ let hasAsciiArt = false; // Global variable to track ASCII art availability
 let lines; // Global variable to store the amount of lines in the ASCII message
 
 // TODO - leveling/XP system
+// TODO - music/sound effects
+// TODO - combat system
 
 class Room {
     constructor(name, description) {
@@ -115,7 +117,7 @@ const commands = {
             term.nextLine(2);
         } else {
             resetVariables();
-            log('I don\'t see that here.', 'red');
+            log("I don't see that here.", 'red');
             term.nextLine(2);
         }
     },
@@ -150,30 +152,41 @@ const commands = {
             log("You need to specify what to use.", 'red');
             return term.nextLine(2);
         }
+        item = item.toLowerCase();
         const room = player.room;
-        const interact = room.items[item].interact;
-        if (interact) {
-            if (itemsJSON[originalItemName].unique) player.uniques.push(room.items[originalItemName]); // add the unique item to the player's list of found uniques
-            delete room.items[originalItemName]; // remove the item from the room
-            log(interact.description, 'yellow');
-            term.nextLine(2);
-            // effects
-            if (interact.effect) {
-                const effect = interact.effect;
-                if (effect.type === 'move') {
-                    player.room = effect.value;
-                    updatePlayerVariable(player);
+        if (rooms[room]) return log("You can't take that.", 'red'); // if the room is predefined, you can't take anything
+        const roomItems = Object.keys(room.items).reduce((acc, key) => { // make the room items lowercase for easier comparison
+            acc[key.toLowerCase()] = key;
+            return acc;
+        }, {});
+        if (roomItems[item]) { // if the item exists in the room
+            const originalItemName = roomItems[item]; // get the original item name
+            const interact = itemsJSON[originalItemName].interact;
+            const itemData = itemsJSON[originalItemName];
+            if (interact) {
+                if (itemsJSON[originalItemName].unique) player.uniques.push(room.items[originalItemName]); // add the unique item to the player's list of found uniques
+                delete room.items[originalItemName]; // remove the item from the room
+                log(interact, 'yellow');
+                term.nextLine(2);
+                // effects
+                if (itemData.effect) {
+                    const effect = itemData.effect;
+                    if (effect.type === 'move') {
+                        player.room = effect.value;
+                        updatePlayerVariable(player);
+                    }
+                    if (effect.type === 'level') {
+                        player.level += effect.value;
+                        updatePlayerVariable(player);
+                    }
                 }
-                if (effect.type === 'level') {
-                    player.level += effect.value;
-                    updatePlayerVariable(player);
-                }
+            } else if (!interact) {
+                log("You can't interact with that.", 'red');
+                term.nextLine(2);
             }
-        } else if (!interact) {
-            log("You can't interact with that.", 'red');
-            term.nextLine(2);
         } else {
             log("I don't see that here.", 'red');
+            term.nextLine(2);
         }
     },
     inventory: () => {
@@ -288,7 +301,7 @@ async function handleCommand(command) {
         await commands[action](target);
     } else {
         log("I don't understand that command.", 'red');
-        term.nextLine(1);
+        term.nextLine(2);
     }
 }
 

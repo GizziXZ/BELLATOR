@@ -1,0 +1,13 @@
+{
+    "Plague Rat": {
+        "name": "Plague Rat",
+        "description": "A rat with a sickly green glow. It's eyes are red and it's fur is matted with blood.",
+        "health": 8,
+        "damage": 3,
+        "experience": 5,
+        "loot": {
+            "Potion": 0.08
+        },
+        "souls": 1
+    }
+}
