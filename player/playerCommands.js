@@ -313,6 +313,7 @@ const commands = {
         term.column(term.width / 2);
     },
     fight: async (enemy) => {
+        updatePlayerVariable();
         resetVariables();
 
         // function used for combat
@@ -351,6 +352,12 @@ const commands = {
         while (player.health > 0 && enemy.health > 0) {
             // Player turn
             log("Your turn!", 'yellow');
+            const location = await term.getCursorLocation();
+            if (location.y > term.height - 2) { // REVIEW - check if this clears properly, i need to shower
+                term.clear();
+                term.moveTo(1, 1);
+            }
+            // logDebug(location.y);
             term.nextLine(1);
             let turnEnded = false;
             let validAction = false;
@@ -378,20 +385,21 @@ const commands = {
                             log("Error: " + error, 'red');
                         } else {
                             const ability = player.abilities[response.selectedText];
-                            logDebug(usedAbilities)
                             if (usedAbilities.includes(response.selectedText)) {
                                 log("You have already used that ability once.", 'red');
                                 term.nextLine(1);
+                            } else {
+                                log(`You use ${response.selectedText}.\n${ability.use}`);
+                                usedAbilities.push(response.selectedText);
+                                term.nextLine(1);
                             }
-                            log(`You use ${response.selectedText}.\n${ability.use}`);
-                            usedAbilities.push(response.selectedText);
-                            term.nextLine(1);
                             if (ability.effect.type === 'heal') player.essence += ability.effect.value;
                             if (ability.effect.type === 'damage') enemy.health -= ability.effect.value;
                             if (ability.cost) ability.cost.forEach(cost => {
                                 if (cost.type === 'essence') player.essence -= cost.value;
                                 if (cost.type === 'souls') player.souls -= cost.value;
                             });
+                            updatePlayerVariable(player);
                             turnEnded = true;
                         }
                     });
