@@ -297,65 +297,84 @@ const commands = {
         // function used for combat
         async function getPlayerInput() {
             return new Promise((resolve) => {
-                term.on('key', (name) => {
-                    resolve(name);
+                term.inputField({cancelable: false}, (error, input) => {
+                    if (error) {
+                        log("Error: " + error, 'red');
+                    } else {
+                        term.nextLine(1);
+                        term.column(1);
+                        resolve(input);
+                    }
                 });
             });
         }
 
         enemy = enemy.toLowerCase().trim();
-        enemy = enemiesJSON[enemy];
-        if (!enemy) {
-            log("I don't see that enemy here."+enemy, 'red');
+        const enemyKey = Object.keys(enemiesJSON).find(key => key.toLowerCase() === enemy);
+        const enemyData = enemiesJSON[enemyKey];
+        if (!enemyData) {
+            log("I don't see that enemy here.", 'red');
             return term.nextLine(2);
         }
 
-        log(`You are fighting ${enemy.name}!`, 'yellow'); // ascii log for combat eventually
+        log(`You are fighting ${enemyData.name}!`, 'yellow'); // ascii log for combat eventually
         term.nextLine(2);
 
         const playerDamage = Math.floor(Math.random() * player.level) + 1; // temporary damage calculation
-        const enemyDamage = Math.floor(Math.random() * enemy.damage) + 1; // temporary damage calculation
+        const enemyDamage = Math.floor(Math.random() * enemyData.damage) + 1; // temporary damage calculation
         
-        while (player.health > 0 && enemy.health > 0) {
+        while (player.health > 0 && enemyData.health > 0) {
             // Player turn
+            log("Your turn!", 'yellow');
+            term.nextLine(1);
             const action = await getPlayerInput();
             player.defending = false; // reset defending status
             if (action === 'hit') {
                 enemy.health -= playerDamage;
-                log(`You hit ${enemy.name} for ${playerDamage} damage!`, 'yellow');
+                log(`You hit ${enemyData.name} for ${playerDamage} damage!`);
+                term.nextLine(1);
             } else if (action === 'defend') {
-                log("You brace yourself for the next attack.", 'yellow');
+                log("You brace yourself for the next attack.");
+                term.nextLine(1);
                 player.defending = true;
             } else if (action === 'use item') {
-                log("You use a health potion.", 'yellow');
+                log("You use a health potion.");
+                term.nextLine(1);
                 player.essence += 20;
             } else {
                 log("Invalid action. You lose your turn.", 'red');
+                term.nextLine(1);
             }
 
-            if (enemy.health <= 0) {
-                log(`You have defeated ${enemy.name}!`, 'green');
-                player.experience += enemy.experience;
+            if (enemyData.health <= 0) {
+                log(`You have defeated ${enemyData.name}!`, 'green');
+                player.experience += enemyData.experience;
+                term.nextLine(2);
                 break;
             }
 
             // Enemy turn
-            log(`${enemy.name}'s turn!`, 'yellow');
+            log(`${enemyData.name}'s turn!`, 'yellow');
+            term.nextLine(1);
             const enemyAction = Math.random() > 0.5 ? 'hit' : 'special'; // temporary enemy action
             if (enemyAction === 'hit') {
                 player.essence -= enemyDamage;
-                log(`${enemy.name} hits you for ${enemyDamage} damage!`, 'red');
+                log(`${enemyData.name} hits you for ${enemyDamage} damage!`, 'red');
+                term.nextLine(1);
             } else if (enemyAction === 'special') {
-                log(`${enemy.name} uses a special attack!`, 'red');
+                log(`${enemyData.name} uses a special attack!`, 'red');
+                term.nextLine(1);
                 player.essence -= enemyDamage + 2;
                 // implement special attack logic
             }
 
             if (player.essence <= 0) {
                 log("You have been defeated.", 'red');
+                // implement game over logic
+                updatePlayerVariable(player);
+                term.nextLine(2);
                 break;
             }
-            term.nextLine(2);
         }
         term.nextLine(2);
     }
