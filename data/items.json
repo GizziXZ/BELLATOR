@@ -25,7 +25,7 @@
         "unique": false,
         "interactOnly": false
     },
-    "Void_Crystal": {
+    "Void Crystal": {
         "name": "Void Crystal",
         "description": "A crystal that has broken off from the void. Damage an enemy for 10 Essence at the cost of 5 Essence",
         "use": "You crush the crystal and feel it take a part of you with it",

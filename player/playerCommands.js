@@ -3,13 +3,14 @@ const rooms = require('../data/rooms.json');
 const fs = require('fs');
 const { log, savePlayer, logDebug, asciiLook } = require('../util/util');
 const itemsJSON = require('../data/items.json');
+const enemiesJSON = require('../data/enemies.json');
 
 let player;
 let hasAsciiArt = false; // Global variable to track ASCII art availability
 let lines; // Global variable to store the amount of lines in the ASCII message
 
 // TODO - leveling/XP system
-// TODO - music/sound effects
+// TODO - music/sound effects for ambiance and dialogue
 // TODO - combat system
 
 class Room {
@@ -18,6 +19,7 @@ class Room {
         this.description = description;
         this.exits = {};
         this.items = {};
+        this.enemies = {};
     }
 }
 
@@ -40,6 +42,14 @@ function generateRandomRoom() {
 
     const newRoom = new Room(roomName, roomDescription);
     const items = Object.keys(itemsJSON);
+
+    // add random enemies to the room using rng
+    const enemies = Object.keys(enemiesJSON);
+    enemies.forEach(enemy => {
+        if (Math.random() < enemiesJSON[enemy].spawn) { // Randomly decide whether to add an enemy (based off the enemy's spawn chance)
+            newRoom.enemies[enemiesJSON[enemy].name] = enemy;
+        }
+    });
 
     // add random items to the room using rng
     items.forEach(item => {
@@ -96,10 +106,12 @@ const commands = {
         let exits = room.exits ? Object.keys(room.exits).join(', ') : '';
         let items = room.items ? Object.keys(room.items).map(itemName => {
             const itemData = itemsJSON[itemName];
-            return itemData.interactOnly ? `${itemName} (interact)` : itemName;
+            return itemData.interactOnly ? `${itemName} (interact)` : itemName; // this just tells you that you can interact with the item instead of taking it
         }).join(', ') : '';
+        let enemies = room.enemies ? Object.keys(room.enemies).join(', ') : '';
         if (exits) roomDescription += `\n\nExits: ${exits}`;
         if (items) roomDescription += `\n\nItems: ${items}`;
+        if (enemies) roomDescription += `\n\nEnemies: ${enemies}`;
 
         if (!item) {
             // logDebug(JSON.stringify(room))
@@ -214,7 +226,7 @@ const commands = {
             log("You need to specify something to take.", 'red');
             return term.nextLine(2);
         }
-        item = item.toLowerCase();
+        item = item.toLowerCase().trim();
         const room = player.room;
         if (rooms[room]) return log("You can't take that.", 'red'); // if the room is predefined, you can't take anything
         const roomItems = Object.keys(room.items).reduce((acc, key) => { // make the room items lowercase for easier comparison
@@ -279,6 +291,74 @@ const commands = {
         term.nextLine(2);
         term.column(term.width / 2);
     },
+    fight: async (enemy) => {
+        resetVariables();
+
+        // function used for combat
+        async function getPlayerInput() {
+            return new Promise((resolve) => {
+                term.on('key', (name) => {
+                    resolve(name);
+                });
+            });
+        }
+
+        enemy = enemy.toLowerCase().trim();
+        enemy = enemiesJSON[enemy];
+        if (!enemy) {
+            log("I don't see that enemy here."+enemy, 'red');
+            return term.nextLine(2);
+        }
+
+        log(`You are fighting ${enemy.name}!`, 'yellow'); // ascii log for combat eventually
+        term.nextLine(2);
+
+        const playerDamage = Math.floor(Math.random() * player.level) + 1; // temporary damage calculation
+        const enemyDamage = Math.floor(Math.random() * enemy.damage) + 1; // temporary damage calculation
+        
+        while (player.health > 0 && enemy.health > 0) {
+            // Player turn
+            const action = await getPlayerInput();
+            player.defending = false; // reset defending status
+            if (action === 'hit') {
+                enemy.health -= playerDamage;
+                log(`You hit ${enemy.name} for ${playerDamage} damage!`, 'yellow');
+            } else if (action === 'defend') {
+                log("You brace yourself for the next attack.", 'yellow');
+                player.defending = true;
+            } else if (action === 'use item') {
+                log("You use a health potion.", 'yellow');
+                player.essence += 20;
+            } else {
+                log("Invalid action. You lose your turn.", 'red');
+            }
+
+            if (enemy.health <= 0) {
+                log(`You have defeated ${enemy.name}!`, 'green');
+                player.experience += enemy.experience;
+                break;
+            }
+
+            // Enemy turn
+            log(`${enemy.name}'s turn!`, 'yellow');
+            const enemyAction = Math.random() > 0.5 ? 'hit' : 'special'; // temporary enemy action
+            if (enemyAction === 'hit') {
+                player.essence -= enemyDamage;
+                log(`${enemy.name} hits you for ${enemyDamage} damage!`, 'red');
+            } else if (enemyAction === 'special') {
+                log(`${enemy.name} uses a special attack!`, 'red');
+                player.essence -= enemyDamage + 2;
+                // implement special attack logic
+            }
+
+            if (player.essence <= 0) {
+                log("You have been defeated.", 'red');
+                break;
+            }
+            term.nextLine(2);
+        }
+        term.nextLine(2);
+    }
     // help: () => {
     //     log(`Commands: ${Object.keys(commands)}`, 'yellow');
     // }
@@ -294,9 +374,12 @@ commands.see = commands.look;
 commands.check = commands.look;
 commands.ls = commands.look; // for you linux fellas
 commands.inv = commands.inventory;
+commands.attack = commands.fight;
+commands.kill = commands.fight;
 
 async function handleCommand(command) {
-    const [action, target] = command.split(' ');
+    const [action, ...targetWords] = command.split(' ');
+    const target = targetWords.join(' ');
     if (commands[action]) {
         await commands[action](target);
     } else {
