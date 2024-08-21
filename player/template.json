@@ -3,6 +3,9 @@
     "room":"",
     "from":"",
     "health": 20,
+    "level": 1,
+    "experience": 0,
+    "souls": 0,
     "inventory": [],
     "generatedPath": {}
 }

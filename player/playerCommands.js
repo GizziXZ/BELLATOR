@@ -2,6 +2,7 @@ const term = require('terminal-kit').terminal;
 const rooms = require('../data/rooms.json');
 const fs = require('fs');
 const { log, savePlayer, logDebug, asciiLook } = require('../util/util');
+const itemsJSON = require('../data/items.json');
 
 let player;
 let hasAsciiArt = false; // Global variable to track ASCII art availability
@@ -34,9 +35,6 @@ function generateRandomRoom() {
     // logDebug(`${roomName}, ${roomDescription}`);
 
     const newRoom = new Room(roomName, roomDescription);
-
-    const itemsJSON = require('../data/items.json');
-
     const items = Object.keys(itemsJSON);
 
     // add random items to the room using rng
@@ -171,7 +169,7 @@ const commands = {
                 return counts;
             }, {});
             for (const [item, count] of Object.entries(itemCounts)) {
-                log(`\n- ${item} (x${count})`, 'yellow');
+                log(`\n- ${item} x${count} (${itemsJSON[item].description})`, 'yellow');
             }
             term.nextLine(2);
         }
@@ -179,7 +177,6 @@ const commands = {
     take: (item) => {
         resetVariables();
         if (!item) return log("What would you like to take?", 'yellow');
-        const originalItem = item;
         item = item.toLowerCase();
         const room = player.room;
         if (rooms[room]) return log("You can't take that.", 'red'); // if the room is predefined, you can't take anything
@@ -199,6 +196,38 @@ const commands = {
             term.nextLine(2);
         }
     },
+    use: (item) => {
+        resetVariables();
+        if (!item) return log("What would you like to use?", 'yellow');
+        item = item.toLowerCase();
+        const inventory = player.inventory.map(i => i.toLowerCase());
+        const itemIndex = inventory.indexOf(item);
+        if (itemIndex === -1) {
+            log("You don't have that item.", 'red');
+            term.nextLine(2);
+        } else {
+            const originalItemName = player.inventory[itemIndex];
+            const itemData = itemsJSON[originalItemName];
+            if (itemData.effect) {
+                log(`You used ${originalItemName}`, 'yellow');
+                term.nextLine(2);
+                if (itemData.type === 'consumable') player.inventory.splice(itemIndex, 1); // remove the item from the inventory if it's a consumable
+                const effect = itemData.effect;
+                if (effect.type === 'heal') {
+                    player.health += effect.value;
+                    updatePlayerVariable(player);
+                }
+            } else {
+                log("You can't use that item.", 'red');
+                term.nextLine(2);
+            }
+        }
+    },
+    stats: () => { // TODO - add ascii art for player stats
+        resetVariables();
+        log(`Name: ${player.name}\nEssence: ${player.health}\nLevel: ${player.level}\nXP: ${player.experience}\nSouls: ${player.souls}`, 'yellow');
+        term.nextLine(2);
+    },
     // help: () => {
     //     log(`Commands: ${Object.keys(commands)}`, 'yellow');
     // }
@@ -211,6 +240,7 @@ commands.examine = commands.look;
 commands.inspect = commands.look;
 commands.see = commands.look;
 commands.check = commands.look;
+commands.ls = commands.look; // for you linux fellas
 commands.inv = commands.inventory;
 
 async function handleCommand(command) {

@@ -1,5 +1,5 @@
 {
-    "potion": {
+    "Potion": {
         "name": "Potion",
         "description": "Heals 5 HP",
         "type": "consumable",
