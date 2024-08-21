@@ -12,6 +12,7 @@ let lines; // Global variable to store the amount of lines in the ASCII message
 // TODO - leveling/XP system
 // TODO - music/sound effects for ambiance and dialogue
 // TODO - combat system
+// TODO - death store
 
 class Room {
     constructor(name, description) {
@@ -20,6 +21,26 @@ class Room {
         this.exits = {};
         this.items = {};
         this.enemies = {};
+    }
+}
+
+class Enemy {
+    constructor(name, health, damage, experience, loot, souls) {
+        this.name = name;
+        this.health = health;
+        this.damage = damage;
+        this.experience = experience;
+        this.loot = {};
+        this.souls = 0;
+    }
+
+    takeDamage(amount) {
+        this.health -= amount;
+        if (this.health < 0) this.health = 0;
+    }
+
+    isAlive() {
+        return this.health > 0;
     }
 }
 
@@ -287,7 +308,7 @@ const commands = {
     },
     stats: () => {
         resetVariables();
-        asciiLook(fs.readFileSync('./ASCII/stats.txt'),`Name: ${player.name}\nEssence: ${player.health}\nLevel: ${player.level}\nXP: ${player.experience}\nSouls: ${player.souls}`, 'yellow', true);
+        asciiLook(fs.readFileSync('./ASCII/stats.txt'),`Name: ${player.name}\nEssence: ${player.health}\nLevel: ${player.level}\nXP: ${player.experience}\nSouls: ${player.souls}\nAbilities: ${Object.keys(player.abilities).join(', ')}`, 'yellow', true);
         term.nextLine(2);
         term.column(term.width / 2);
     },
@@ -317,52 +338,87 @@ const commands = {
             return term.nextLine(2);
         }
 
-        log(`You are fighting ${enemyData.name}!`, 'yellow'); // ascii log for combat eventually
+        enemy = new Enemy(enemyData.name, enemyData.health, enemyData.damage, enemyData.experience, enemyData.loot, enemyData.souls);
+
+        log(`You are fighting ${enemy.name}!`, 'yellow'); // ascii log for combat eventually
         term.nextLine(2);
 
         const playerDamage = Math.floor(Math.random() * player.level) + 1; // temporary damage calculation
-        const enemyDamage = Math.floor(Math.random() * enemyData.damage) + 1; // temporary damage calculation
+        const enemyDamage = Math.floor(Math.random() * enemy.damage) + 1; // temporary damage calculation
+
+        let usedAbilities = [];
         
-        while (player.health > 0 && enemyData.health > 0) {
+        while (player.health > 0 && enemy.health > 0) {
             // Player turn
             log("Your turn!", 'yellow');
             term.nextLine(1);
-            const action = await getPlayerInput();
-            player.defending = false; // reset defending status
-            if (action === 'hit') {
-                enemy.health -= playerDamage;
-                log(`You hit ${enemyData.name} for ${playerDamage} damage!`);
-                term.nextLine(1);
-            } else if (action === 'defend') {
-                log("You brace yourself for the next attack.");
-                term.nextLine(1);
-                player.defending = true;
-            } else if (action === 'use item') {
-                log("You use a health potion.");
-                term.nextLine(1);
-                player.essence += 20;
-            } else {
-                log("Invalid action. You lose your turn.", 'red');
-                term.nextLine(1);
+            let turnEnded = false;
+            let validAction = false;
+            while (!turnEnded) {
+                const action = await getPlayerInput();
+                player.defending = false; // reset defending status
+                if (action === 'hit') {
+                    enemy.health -= playerDamage;
+                    log(`You hit ${enemy.name} for ${playerDamage} damage!`);
+                    term.nextLine(1);
+                    turnEnded = true;
+                } else if (action === 'defend') {
+                    log("You brace yourself for the next attack.");
+                    term.nextLine(1);
+                    player.defending = true;
+                    turnEnded = true;
+                } else if (action === 'use item') {
+                    log("You use a health potion.");
+                    term.nextLine(1);
+                    player.essence += 20;
+                    turnEnded = true;
+                } else if (action === 'abilities') {
+                    term.singleColumnMenu(Object.keys(player.abilities), (error, response) => {
+                        if (error) {
+                            log("Error: " + error, 'red');
+                        } else {
+                            const ability = player.abilities[response.selectedText];
+                            logDebug(usedAbilities)
+                            if (usedAbilities.includes(response.selectedText)) {
+                                log("You have already used that ability once.", 'red');
+                                term.nextLine(1);
+                            }
+                            log(`You use ${response.selectedText}.\n${ability.use}`);
+                            usedAbilities.push(response.selectedText);
+                            term.nextLine(1);
+                            if (ability.effect.type === 'heal') player.essence += ability.effect.value;
+                            if (ability.effect.type === 'damage') enemy.health -= ability.effect.value;
+                            if (ability.cost) ability.cost.forEach(cost => {
+                                if (cost.type === 'essence') player.essence -= cost.value;
+                                if (cost.type === 'souls') player.souls -= cost.value;
+                            });
+                            turnEnded = true;
+                        }
+                    });
+                    validAction = true;
+                } else if (action === '' && !validAction) {
+                    log("Invalid action.", 'red');
+                    term.nextLine(1);
+                }
             }
 
-            if (enemyData.health <= 0) {
-                log(`You have defeated ${enemyData.name}!`, 'green');
-                player.experience += enemyData.experience;
+            if (enemy.health <= 0) {
+                log(`You have defeated ${enemy.name}!`, 'green');
+                player.experience += enemy.experience;
                 term.nextLine(2);
                 break;
             }
 
             // Enemy turn
-            log(`${enemyData.name}'s turn!`, 'yellow');
+            log(`${enemy.name}'s turn!`, 'yellow');
             term.nextLine(1);
             const enemyAction = Math.random() > 0.5 ? 'hit' : 'special'; // temporary enemy action
             if (enemyAction === 'hit') {
                 player.essence -= enemyDamage;
-                log(`${enemyData.name} hits you for ${enemyDamage} damage!`, 'red');
+                log(`${enemy.name} hits you for ${enemyDamage} damage!`, 'red');
                 term.nextLine(1);
             } else if (enemyAction === 'special') {
-                log(`${enemyData.name} uses a special attack!`, 'red');
+                log(`${enemy.name} uses a special attack!`, 'red');
                 term.nextLine(1);
                 player.essence -= enemyDamage + 2;
                 // implement special attack logic
