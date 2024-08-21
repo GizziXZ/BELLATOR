@@ -35,6 +35,17 @@ function generateRandomRoom() {
 
     const newRoom = new Room(roomName, roomDescription);
 
+    const itemsJSON = require('../data/items.json');
+
+    const items = Object.keys(itemsJSON);
+
+    // add random items to the room using rng
+    items.forEach(item => {
+        if (Math.random() > 0.5) { // Randomly decide whether to add an item
+            newRoom.items[itemsJSON[item].name] = item;
+        }
+    });
+
     // add random exits to the room using rng
     const directions = ["north", "south", "east", "west"];
     function setDirections() {
@@ -101,7 +112,7 @@ const commands = {
         } else {
             resetVariables();
             log('I don\'t see that here.', 'red');
-            term.nextLine(1);
+            term.nextLine(2);
         }
     },
     move: async (exit) => {
@@ -109,7 +120,11 @@ const commands = {
         const room = rooms[player.room] || player.room;
         let targetRoom = room.exits[exit];
 
-        if (!targetRoom) return log("I don't see that exit.", 'red');
+        if (!targetRoom) {
+            log("I don't see that exit.", 'red');
+            term.nextLine(2);
+            return;
+        }
         player.from = exit;
     
         if (rooms[player.room] && rooms[player.room].exits[exit]) { // If the target room is predefined
@@ -145,15 +160,43 @@ const commands = {
     inventory: () => {
         resetVariables();
         const inventory = player.inventory;
-        const inventoryLength = Object.keys(player.inventory).length;
-        if (inventoryLength === 0) {
+        const inventorySize = inventory.size;
+        if (inventorySize === 0) {
             log("Your inventory is empty.", 'yellow');
             term.nextLine(2);
         } else {
             log("Inventory:", 'yellow');
-            inventory.forEach(item => {
-            log(`- ${item}`, 'yellow');
-            });
+            const itemCounts = inventory.reduce((counts, item) => {
+                counts[item] = (counts[item] || 0) + 1;
+                return counts;
+            }, {});
+            for (const [item, count] of Object.entries(itemCounts)) {
+                log(`\n- ${item} (x${count})`, 'yellow');
+            }
+            term.nextLine(2);
+        }
+    },
+    take: (item) => {
+        resetVariables();
+        if (!item) return log("What would you like to take?", 'yellow');
+        const originalItem = item;
+        item = item.toLowerCase();
+        const room = player.room;
+        if (rooms[room]) return log("You can't take that.", 'red'); // if the room is predefined, you can't take anything
+        const roomItems = Object.keys(room.items).reduce((acc, key) => {
+            acc[key.toLowerCase()] = key;
+            return acc;
+        }, {});
+        if (roomItems[item]) {
+            const originalItemName = roomItems[item];
+            player.inventory.push(originalItemName);
+            delete room.items[originalItemName];
+            updatePlayerVariable(player);
+            log(`You took the ${originalItemName}.`, 'yellow');
+            term.nextLine(2);
+        } else {
+            log("I don't see that here.", 'red');
+            term.nextLine(2);
         }
     },
     // help: () => {
@@ -168,6 +211,7 @@ commands.examine = commands.look;
 commands.inspect = commands.look;
 commands.see = commands.look;
 commands.check = commands.look;
+commands.inv = commands.inventory;
 
 async function handleCommand(command) {
     const [action, target] = command.split(' ');

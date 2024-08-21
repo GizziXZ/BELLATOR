@@ -3,6 +3,6 @@
     "room":"",
     "from":"",
     "health": 20,
-    "inventory": {},
+    "inventory": [],
     "generatedPath": {}
 }
