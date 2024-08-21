@@ -28,11 +28,11 @@ if (!player.name) { // game intro sequence
     term.once('key', async () => {
         term.clear();
         log(fs.readFileSync('./ASCII/start.txt', 'utf8'));
-        const input = await waitForResponse("Welcome back. Warrior. What is your name?", 80, 150, 25, 2);
+        const input = await waitForResponse("Welcome back. Warrior. What is your name?", 80, term.width / 2, term.height / 2.5, 2); // REVIEW - original set of numbers after delay was 150, 25, 2
         player.name = input;
         player.room = "start";
         await savePlayer(player);
-        await term.slowTyping(`...${input}, that is your name? Interesting.`, {delay: 80});
+        await term.slowTyping(`...${input}, that is your name? Interesting.`, { delay: 80 });
         term.once('key', () => {
             startGameplay();
         });

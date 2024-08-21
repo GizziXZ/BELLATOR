@@ -1,11 +1,35 @@
 {
     "Potion": {
         "name": "Potion",
-        "description": "Heals 5 HP",
+        "description": "It fills you with determination. Gain 5 Essence",
         "type": "consumable",
         "effect": {
             "type": "heal",
             "value": 5
-        }
+        },
+        "rarity": 0.09
+    },
+    "Grimoire": {
+        "name": "Grimoire",
+        "description": "Jona doesn't like it when you talk about magic. Gain 10 experience",
+        "type": "consumable",
+        "effect": {
+            "type": "experience",
+            "value": 10
+        },
+        "rarity": 0.07
+    },
+    "Void_Crystal": {
+        "name": "Void Crystal",
+        "description": "A crystal that has broken off from the void. Damage an enemy for 10 Essence at the cost of 5 Essence",
+        "type": "consumable",
+        "effect": {
+            "type": "damage",
+            "value": 10,
+            "cost": {
+                "essence": 5
+            }
+        },
+        "rarity": 0.06
     }
 }

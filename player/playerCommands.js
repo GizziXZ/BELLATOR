@@ -39,7 +39,7 @@ function generateRandomRoom() {
 
     // add random items to the room using rng
     items.forEach(item => {
-        if (Math.random() > 0.5) { // Randomly decide whether to add an item
+        if (Math.random() < itemsJSON[item].rarity) { // Randomly decide whether to add an item (based off the item's rarity)
             newRoom.items[itemsJSON[item].name] = item;
         }
     });
@@ -114,7 +114,10 @@ const commands = {
         }
     },
     move: async (exit) => {
-        if (!exit) return log("Where would you like to move to?", 'yellow');
+        if (!exit) {
+            log("You need to specify somewhere to move to.", 'red');
+            return term.nextLine(2);
+        }
         const room = rooms[player.room] || player.room;
         let targetRoom = room.exits[exit];
 
@@ -137,7 +140,10 @@ const commands = {
     },
     interact: (item) => {
         resetVariables();
-        if (!item) return log("What would you like to interact with?", 'yellow');
+        if (!item) {
+            log("You need to specify what to use.", 'red');
+            return term.nextLine(2);
+        }
         const room = rooms[player.room];
         const interact = room.items[item].interact;
         if (interact) {
@@ -176,7 +182,10 @@ const commands = {
     },
     take: (item) => {
         resetVariables();
-        if (!item) return log("What would you like to take?", 'yellow');
+        if (!item) {
+            log("You need to specify something to take.", 'red');
+            return term.nextLine(2);
+        }
         item = item.toLowerCase();
         const room = player.room;
         if (rooms[room]) return log("You can't take that.", 'red'); // if the room is predefined, you can't take anything
@@ -198,7 +207,10 @@ const commands = {
     },
     use: (item) => {
         resetVariables();
-        if (!item) return log("What would you like to use?", 'yellow');
+        if (!item) {
+            log("You need to specify something to use", 'red');
+            return term.nextLine(2);
+        }
         item = item.toLowerCase();
         const inventory = player.inventory.map(i => i.toLowerCase());
         const itemIndex = inventory.indexOf(item);
@@ -217,6 +229,10 @@ const commands = {
                     player.health += effect.value;
                     updatePlayerVariable(player);
                 }
+                if (effect.type === 'experience') {
+                    player.experience += effect.value;
+                    updatePlayerVariable(player);
+                }
             } else {
                 log("You can't use that item.", 'red');
                 term.nextLine(2);
@@ -225,8 +241,9 @@ const commands = {
     },
     stats: () => { // TODO - add ascii art for player stats
         resetVariables();
-        log(`Name: ${player.name}\nEssence: ${player.health}\nLevel: ${player.level}\nXP: ${player.experience}\nSouls: ${player.souls}`, 'yellow');
+        asciiLook(fs.readFileSync('./ASCII/stats.txt'),`Name: ${player.name}\nEssence: ${player.health}\nLevel: ${player.level}\nXP: ${player.experience}\nSouls: ${player.souls}`, 'yellow', true);
         term.nextLine(2);
+        term.column(term.width / 2);
     },
     // help: () => {
     //     log(`Commands: ${Object.keys(commands)}`, 'yellow');
@@ -235,6 +252,7 @@ const commands = {
 
 // aliases
 commands.go = commands.move;
+commands.cd = commands.move; // for you linux fellas
 commands.walk = commands.move;
 commands.examine = commands.look;
 commands.inspect = commands.look;

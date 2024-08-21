@@ -20,7 +20,6 @@ function log(message, color) { // brightGreen is default unless specified otherw
  * @param {number} baseColumn - The base column position on the terminal.
  * @param {number} baseLine - The base line position on the terminal.
  * @param {number} nextLine - The next line position on the terminal.
- * @param {string} nextAction - The next action to be taken after the response is given (e.g. another dialogue).
  */
 async function waitForResponse(dialogue, delay, baseColumn, baseLine, nextLine) {
     term.moveTo(baseColumn, baseLine);
@@ -49,8 +48,9 @@ async function waitForResponse(dialogue, delay, baseColumn, baseLine, nextLine) 
  * 
  * @param {string} ASCII - The ASCII art to be displayed.
  * @param {string} message - The message to be displayed.
+ * @param {boolean} center - Whether the message should be centered.
  */
-async function asciiLook(ASCII, message) {
+async function asciiLook(ASCII, message, center) {
     term.clear();
     const mid = Math.floor(term.width / 2);
     const regex = new RegExp(`.{1,${term.width - mid + 1}}`,'g')
@@ -58,7 +58,8 @@ async function asciiLook(ASCII, message) {
     // const lines = await message.match(regex);
     // await logDebug(segments);
     log(ASCII); // ASCII art will be printed on the left side
-    term.moveTo(mid, 1); // move to the middle of the terminal
+    if (center) term.moveTo(mid, term.height / 2.5); // move to the middle vertically aswell
+    else term.moveTo(mid, 1); // move to the middle of the terminal
     // term.column(mid + 1); // using the middle of the terminal as a wall
     let lineAmount = 0;
     segments.forEach(segment => {
