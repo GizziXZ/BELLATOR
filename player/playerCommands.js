@@ -8,6 +8,7 @@ const enemiesJSON = require('../data/enemies.json');
 let player;
 let hasAsciiArt = false; // Global variable to track ASCII art availability
 let lines; // Global variable to store the amount of lines in the ASCII message
+let isFighting;
 
 // TODO - leveling/XP system
 // TODO - music/sound effects for ambiance and dialogue
@@ -271,7 +272,7 @@ const commands = {
             term.nextLine(2);
         }
     },
-    use: (item) => {
+    use: async (item) => {
         resetVariables();
         if (!item) {
             log("You need to specify something to use", 'red');
@@ -293,13 +294,23 @@ const commands = {
                 const effect = itemData.effect;
                 // effects
                 if (effect.type === 'heal') {
+                    if (isFighting) return effect;
                     player.health += effect.value;
-                    updatePlayerVariable(player);
+                    await updatePlayerVariable(player);
                 }
                 if (effect.type === 'experience') {
+                    if (isFighting) return effect;
                     player.experience += effect.value;
-                    updatePlayerVariable(player);
+                    await updatePlayerVariable(player);
                 }
+                if (effect.type === 'damage') {
+                    if (isFighting) return effect;
+                    await updatePlayerVariable(player);
+                } else if (effect.type === 'damage' && !isFighting) {
+                    log("You can't use that item here.", 'red');
+                    term.nextLine(2);
+                }
+                return effect;
             } else {
                 log("You can't use that item.", 'red');
                 term.nextLine(2);
@@ -350,19 +361,20 @@ const commands = {
         let usedAbilities = [];
         
         while (player.health > 0 && enemy.health > 0) {
-            // Player turn
-            log("Your turn!", 'yellow');
             const location = await term.getCursorLocation();
-            if (location.y > term.height - 2) { // REVIEW - check if this clears properly, i need to shower
+            if (location.y > term.height - 2) {
                 term.clear();
                 term.moveTo(1, 1);
             }
+            // Player turn
+            log("Your turn!", 'yellow');
             // logDebug(location.y);
             term.nextLine(1);
             let turnEnded = false;
             let validAction = false;
             while (!turnEnded) {
                 const action = await getPlayerInput();
+                const args = action.split(' ');
                 player.defending = false; // reset defending status
                 if (action === 'hit') {
                     enemy.health -= playerDamage;
@@ -374,11 +386,22 @@ const commands = {
                     term.nextLine(1);
                     player.defending = true;
                     turnEnded = true;
-                } else if (action === 'use item') {
-                    log("You use a health potion.");
-                    term.nextLine(1);
-                    player.essence += 20;
-                    turnEnded = true;
+                } else if (args[0] === 'use') {
+                    if (args[1]) {
+                        const effect = await commands['use'](args.slice(1).join(' ')); // FIXME always undefined
+                        await logDebug(effect);
+                        if (effect.type === 'heal') player.health += effect.value;
+                        if (effect.type === 'damage') enemy.health -= effect.value;
+                        if (effect.cost) effect.cost.forEach(cost => {
+                            if (cost.type === 'essence') player.essence -= cost.value;
+                            if (cost.type === 'souls') player.souls -= cost.value;
+                        });
+                        turnEnded = true;
+                    }
+                    // term.nextLine(1);
+                    // log("You use a health potion.");
+                    // player.essence += 20;
+                    // turnEnded = true;
                 } else if (action === 'abilities') {
                     term.singleColumnMenu(Object.keys(player.abilities), (error, response) => {
                         if (error) {
