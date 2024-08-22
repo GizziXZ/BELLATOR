@@ -2,7 +2,7 @@
     "name":"",
     "room":"",
     "from":"",
-    "health": 20,
+    "essence": 20,
     "level": 1,
     "experience": 0,
     "souls": 0,

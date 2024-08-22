@@ -3,6 +3,16 @@
         "name": "Plague Rat",
         "description": "A rat with a sickly green glow. It's eyes are red and it's fur is matted with blood.",
         "health": 8,
+        "level": 1,
+        "specials": {
+            "Plague": {
+                "description": "The rat bites you, you feel a burning sensation in your veins.",
+                "effect": {
+                    "type": "damage",
+                    "value": 2
+                }
+            }
+        },
         "damage": 1,
         "experience": 5,
         "loot": {
