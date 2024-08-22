@@ -4,6 +4,7 @@
         "description": "A rat with a sickly green glow. It's eyes are red and it's fur is matted with blood.",
         "health": 8,
         "level": 1,
+        "criticals": false,
         "specials": {
             "Plague": {
                 "description": "The rat bites you, you feel a burning sensation in your veins.",
@@ -19,6 +20,6 @@
             "Potion": 0.08
         },
         "souls": 1,
-        "spawn": 0.1
+        "spawn": 0.16
     }
 }

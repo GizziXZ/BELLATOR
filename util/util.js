@@ -98,9 +98,19 @@ async function savePlayer(data) {
     await fs.writeFile('./player/player.json', JSON.stringify(data));
 }
 
-async function playSound(file) {
-    const { default: Audic } = await import('audic');
-    new Audic(file).play();
+// Audic caching because it takes too long to play audio
+let AudicInstance;
+let footsteps;
+
+async function playSound(sound) {
+    if (!AudicInstance) {
+        const { default: Audic } = await import('audic');
+        AudicInstance = Audic;
+        footsteps = new Audic('./audio/indoor-footsteps.mp3');
+    }
+    if (sound === 'footsteps') {
+        await footsteps.play();
+    }
 }
 
 module.exports = {

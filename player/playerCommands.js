@@ -10,7 +10,7 @@ let hasAsciiArt = false; // Global variable to track ASCII art availability
 let lines; // Global variable to store the amount of lines in the ASCII message
 let isFighting;
 
-// TODO - music/sound effects for ambiance and dialogue
+// TODO - music/sound effects for ambiance and dialogue (we can play a single sound on loop during dialogue and then stop it when the dialogue ends)
 // TODO - combat system
 // TODO - death store
 
@@ -186,7 +186,7 @@ const commands = {
             updatePlayerVariable(player);
             await commands['look']();
         }
-        playSound('./audio/indoor-footsteps.wav');
+        playSound('footsteps');
     },
     interact: (item) => {
         resetVariables();
@@ -333,7 +333,6 @@ const commands = {
     fight: async (enemy) => {
         updatePlayerVariable();
         resetVariables();
-
         // function used for combat
         async function getPlayerInput() {
             return new Promise((resolve) => {
@@ -359,14 +358,20 @@ const commands = {
 
         enemy = new Enemy(enemyData.name, enemyData.health, enemyData.level, enemyData.damage);
 
-        log(`You are fighting ${enemy.name}!`, 'yellow'); // ascii log for combat eventually
+        if (fs.existsSync(`./ASCII/${enemy.name}.txt`)) { // if there is an ASCII art file for the enemy that we are fighting, display it
+            hasAsciiArt = true;
+            log(fs.readFileSync(`./ASCII/${enemy.name}.txt`, 'utf8'));
+        } else log(`You are fighting ${enemy.name}!`, 'yellow'); // ascii log for combat eventually
         term.nextLine(2);
         let usedAbilities = [];
         while (player.essence > 0 && enemy.health > 0) {
             const location = await term.getCursorLocation();
             if (location.y > term.height - 2) {
                 term.clear();
-                term.moveTo(1, 1);
+                if (hasAsciiArt) {
+                    log(fs.readFileSync(`./ASCII/${enemy.name}.txt`, 'utf8'));
+                    term.nextLine(1);
+                }
             }
             // Player turn
             log("Your turn!", 'yellow');
@@ -379,9 +384,13 @@ const commands = {
                 const args = action.split(' ');
                 player.defending = false; // reset defending status
                 if (action === 'hit') {
-                    const playerDamage = Math.floor(Math.random() * player.level) + 1;
+                    const critical = Math.random() < 0.08; // 8% chance of a critical hit
+                    let playerDamage = Math.floor(Math.random() * player.level) + 1;
+                    if (critical) {
+                        playerDamage *= 1.3; // 30% increase in damage for a critical hit
+                        log(`Critical hit!, You hit ${enemy.name} for ${playerDamage} damage!`, 'yellow');
+                    } else log(`You hit ${enemy.name} for ${playerDamage} damage!`);
                     enemy.health -= playerDamage;
-                    log(`You hit ${enemy.name} for ${playerDamage} damage!`);
                     term.nextLine(2);
                     turnEnded = true;
                 } else if (action === 'defend') {
@@ -434,9 +443,12 @@ const commands = {
                 } else if (action == 'flee' || action == 'run') {
                     log("You attempt to flee from the battle.", 'yellow');
                     term.nextLine(1);
-                    const fleeChance = Math.random() * (player.level - enemy.level + 1); // calculate the chance of fleeing based on the level difference
-                    logDebug(fleeChance);
+                    const fleeChance = Math.random() * (player.level - enemy.level + 1) * 0.4; // calculate the chance of fleeing based on the level difference, multiplied by 0.4 for better balance
+                    await logDebug(fleeChance);
                     if (fleeChance > 0.5) {
+                        hasAsciiArt = false;
+                        await updatePlayerVariable(player);
+                        term.clear()
                         log("You successfully fled from the battle!\nWhat will you do now?", 'green');
                         term.nextLine(2);
                         return;
@@ -453,13 +465,13 @@ const commands = {
             }
 
             if (enemy.health <= 0) {
-                term.clear();
-                log(`You have defeated ${enemy.name}!\nWhat will you do now?`, 'green');
+                hasAsciiArt = false;
                 player.experience += enemyData.experience;
                 player.souls += enemyData.souls;
                 delete player.room.enemies[enemy.name];
-                updatePlayerVariable(player);
-                logDebug(player.room.enemies); 
+                await updatePlayerVariable(player);
+                term.clear();
+                log(`You have defeated ${enemy.name}!\nWhat will you do now?`, 'green');
                 term.nextLine(2);
                 return;
             }
@@ -468,10 +480,15 @@ const commands = {
             log(`${enemy.name}'s turn!`, 'yellow');
             term.nextLine(1);
             const enemyAction = Math.random() > 0.2 ? 'hit' : 'special'; // 20% chance to use a special attack
+            let critical;
+            if (enemyData['criticals']) critical = Math.random() < 0.08; // 8% chance of a critical hit if the enemy is allowed crits
             if (enemyAction === 'hit') {
-                const enemyDamage = Math.floor(Math.random() * enemy.damage) + 1;
+                let enemyDamage = Math.floor(Math.random() * enemy.damage) + 1;
+                if (critical) {
+                    enemyDamage *= 1.3; // 30% increase in damage for a critical hit
+                    log(`${enemy.name} lands a critical hit on you for ${enemyDamage} damage!`, 'red');
+                } else log(`${enemy.name} hits you for ${enemyDamage} damage!`, 'red');
                 player.essence -= enemyDamage;
-                log(`${enemy.name} hits you for ${enemyDamage} damage!`, 'red');
                 term.nextLine(2);
             } else if (enemyAction === 'special') {
                 const specials = Object.keys(enemyData.specials);
@@ -486,6 +503,7 @@ const commands = {
 
             if (player.essence <= 0) {
                 term.clear();
+                hasAsciiArt = false;
                 log("You have been defeated.", 'red');
                 // implement game over logic
                 updatePlayerVariable(player);
