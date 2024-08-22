@@ -1,5 +1,7 @@
 {
   "dependencies": {
+    "speaker": "^0.5.5",
+    "lame": "github:FlatIO/node-lame#ff6643b17e1a829247189d5e99783d456d0ff4b6",
     "terminal-kit": "^3.1.1"
   }
 }

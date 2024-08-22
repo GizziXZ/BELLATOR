@@ -1,16 +1,23 @@
 const term = require('terminal-kit').terminal;
 const rooms = require('../data/rooms.json');
+const Speaker = require('speaker');
+const lame = require('lame');
 const fs = require('fs');
 const { log, savePlayer, logDebug, asciiLook } = require('../util/util');
 const itemsJSON = require('../data/items.json');
 const enemiesJSON = require('../data/enemies.json');
+
+const audio = new Speaker({
+    channels: 2,
+    bitDepth: 16,
+    sampleRate: 44100
+});
 
 let player;
 let hasAsciiArt = false; // Global variable to track ASCII art availability
 let lines; // Global variable to store the amount of lines in the ASCII message
 let isFighting;
 
-// TODO - leveling/XP system
 // TODO - music/sound effects for ambiance and dialogue
 // TODO - combat system
 // TODO - death store
@@ -100,9 +107,43 @@ function generateRandomRoom() {
     return setDirections();
 }
 
+let audioStream;
+
+function playAudio(file) { // FIXME - audio only plays once and refuses to play again
+    if (audioStream) {
+        audioStream.unpipe(audio);
+        audioStream = null;
+    }
+
+    audioStream = fs.createReadStream(file)
+        .pipe(new lame.Decoder())
+        .on('format', function () {
+            this.pipe(audio);
+        })
+        .on('end', function () {
+            audio.end();
+            audioStream = null;
+        })
+        .on('error', function (err) {
+            console.error('Audio stream error:', err);
+            audioStream = null;
+        });
+}
+
+function updateLevel() {
+    if (player.experience >= player.level * 80) {
+        player.level++;
+        player.experience - player.level * 80;
+        player.essence = 100;
+        log(`You have leveled up to level ${player.level}!`, 'green');
+        term.nextLine(1);
+    }
+}
+
 function updatePlayerVariable(data) {
     if (!data) return player = JSON.parse(fs.readFileSync('./player/player.json', 'utf8'));
     fs.writeFileSync('./player/player.json', JSON.stringify(data));
+    updateLevel();
     return player = JSON.parse(fs.readFileSync('./player/player.json', 'utf8'));
 }
 
@@ -167,7 +208,6 @@ const commands = {
             return;
         }
         player.from = exit;
-    
         if (rooms[player.room] && rooms[player.room].exits[exit]) { // If the target room is predefined
             player.room = targetRoom;
             updatePlayerVariable(player);
@@ -177,6 +217,7 @@ const commands = {
             updatePlayerVariable(player);
             await commands['look']();
         }
+        playAudio('./audio/indoor-footsteps.mp3');
     },
     interact: (item) => {
         resetVariables();
@@ -457,7 +498,7 @@ const commands = {
             // Enemy turn
             log(`${enemy.name}'s turn!`, 'yellow');
             term.nextLine(1);
-            const enemyAction = Math.random() > 0.5 ? 'hit' : 'special'; // temporary enemy action
+            const enemyAction = Math.random() > 0.2 ? 'hit' : 'special'; // 20% chance to use a special attack
             if (enemyAction === 'hit') {
                 const enemyDamage = Math.floor(Math.random() * enemy.damage) + 1;
                 player.essence -= enemyDamage;
