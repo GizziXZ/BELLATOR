@@ -1,0 +1,24 @@
+{
+    "Wraith's Prayer": {
+        "description": "Sacrifice 5 Souls to Gain 3 Essence",
+        "use": "You pray to the god of death, sacrificing 5 souls to gain 3 essence",
+        "effect": {
+            "type": "heal",
+            "value": 3,
+            "cost": {
+                "souls": 5
+            }
+        }
+    },
+    "Brand of the Damned": {
+        "description": "Brand an enemy for 5 Essence, stunning them for 2 turn",
+        "use": "You brand the enemy with the mark of the damned",
+        "effect": {
+            "type": "stun",
+            "value": 2,
+            "cost": {
+                "essence": 5
+            }
+        }
+    }
+}

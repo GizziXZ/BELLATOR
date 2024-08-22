@@ -8,7 +8,7 @@ const enemiesJSON = require('../data/enemies.json');
 let player;
 let hasAsciiArt = false; // Global variable to track ASCII art availability
 let lines; // Global variable to store the amount of lines in the ASCII message
-let isFighting;
+let isFighting; // Global variable to track if the player is in combat
 
 // TODO - music/sound effects for ambiance and dialogue (we can play a single sound on loop during dialogue and then stop it when the dialogue ends)
 // TODO - combat system
@@ -25,11 +25,12 @@ class Room {
 }
 
 class Enemy {
-    constructor(name, health, level, damage) {
+    constructor(name, health, level, damage, status) {
         this.name = name;
         this.health = health;
         this.level = level;
         this.damage = damage;
+        this.status = {};
     }
 
     takeDamage(amount) {
@@ -359,7 +360,7 @@ const commands = {
             return term.nextLine(2);
         }
 
-        enemy = new Enemy(enemyData.name, enemyData.health, enemyData.level, enemyData.damage);
+        enemy = new Enemy(enemyData.name, enemyData.health, enemyData.level, enemyData.damage, {});
 
         if (fs.existsSync(`./ASCII/${enemy.name}.txt`)) { // if there is an ASCII art file for the enemy that we are fighting, display it
             hasAsciiArt = true;
@@ -388,8 +389,12 @@ const commands = {
                 player.defending = false; // reset defending status
                 if (action === 'hit') {
                     const critical = Math.random() < 0.08; // 8% chance of a critical hit
+                    const miss = Math.random() < 0.05; // 5% chance of a miss
                     let playerDamage = Math.floor(Math.random() * player.level) + 1;
-                    if (critical) {
+                    if (miss) {
+                        playerDamage = 0;
+                        log("You missed!", 'red');
+                    } else if (critical) {
                         playerDamage *= 1.3; // 30% increase in damage for a critical hit
                         log(`Critical hit!, You hit ${enemy.name} for ${playerDamage} damage!`, 'yellow');
                     } else log(`You hit ${enemy.name} for ${playerDamage} damage!`);
@@ -419,7 +424,8 @@ const commands = {
                         turnEnded = true;
                     }
                 } else if (action === 'abilities') {
-                    term.singleColumnMenu(Object.keys(player.abilities), (error, response) => {
+                    const abilities = Object.keys(player.abilities).map(key => `${key} - ${player.abilities[key].description}`);
+                    term.singleColumnMenu(abilities, (error, response) => {
                         if (error) {
                             log("Error: " + error, 'red');
                         } else {
@@ -434,6 +440,7 @@ const commands = {
                             }
                             if (ability.effect.type === 'heal') player.essence += ability.effect.value;
                             if (ability.effect.type === 'damage') enemy.health -= ability.effect.value;
+                            if (ability.effect.type === 'stun') enemy.status.stunned = ability.effect.value;
                             if (ability.cost) ability.cost.forEach(cost => {
                                 if (cost.type === 'essence') player.essence -= cost.value;
                                 if (cost.type === 'souls') player.souls -= cost.value;
@@ -482,10 +489,20 @@ const commands = {
             // Enemy turn
             log(`${enemy.name}'s turn!`, 'yellow');
             term.nextLine(1);
+            if (enemy.status.stunned) {
+                log(`${enemy.name} is stunned and cannot attack!`, 'red');
+                term.nextLine(2);
+                enemy.status.stunned--;
+                continue;
+            }
             const enemyAction = Math.random() > 0.2 ? 'hit' : 'special'; // 20% chance to use a special attack
             let critical;
             if (enemyData['criticals']) critical = Math.random() < 0.08; // 8% chance of a critical hit if the enemy is allowed crits
-            if (enemyAction === 'hit') {
+            const miss = Math.random() < 0.05; // 5% chance of a miss
+            if (miss) {
+                log(`${enemy.name} missed their attack!`, 'red');
+                term.nextLine(2);
+            } else if (enemyAction === 'hit') {
                 let enemyDamage = Math.floor(Math.random() * enemy.damage) + 1;
                 if (critical) {
                     enemyDamage *= 1.3; // 30% increase in damage for a critical hit
@@ -515,7 +532,16 @@ const commands = {
             }
         }
         term.nextLine(2);
-    }
+        },
+        abilities: () => { // basically a help command for abilities
+            resetVariables();
+            log("Abilities:", 'yellow');
+            term.nextLine(1);
+            for (const [ability, data] of Object.entries(player.abilities)) {
+                log(`   - ${ability}: ${data.description}\n`, 'yellow');
+            }
+            term.nextLine(1)
+        }
     // help: () => {
     //     log(`Commands: ${Object.keys(commands)}`, 'yellow');
     // }
