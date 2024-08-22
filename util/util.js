@@ -98,10 +98,16 @@ async function savePlayer(data) {
     await fs.writeFile('./player/player.json', JSON.stringify(data));
 }
 
+async function playSound(file) {
+    const { default: Audic } = await import('audic');
+    new Audic(file).play();
+}
+
 module.exports = {
     log,
     waitForResponse,
     savePlayer,
     logDebug,
-    asciiLook
+    asciiLook,
+    playSound
 };
