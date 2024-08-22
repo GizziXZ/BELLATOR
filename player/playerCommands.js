@@ -135,7 +135,7 @@ const commands = {
 
         let exits = room.exits ? Object.keys(room.exits).join(', ') : '';
         let items = room.items ? Object.keys(room.items).map(itemName => {
-            const itemData = itemsJSON[itemName];
+            const itemData = itemsJSON[itemName] || room.items[itemName];
             return itemData.interactOnly ? `${itemName} (interact)` : itemName; // this just tells you that you can interact with the item instead of taking it
         }).join(', ') : '';
         let enemies = room.enemies ? Object.keys(room.enemies).join(', ') : '';
@@ -188,38 +188,37 @@ const commands = {
         }
         playSound('footsteps');
     },
-    interact: (item) => {
+    interact: async (item) => {
         resetVariables();
         if (!item) {
             log("You need to specify what to use.", 'red');
             return term.nextLine(2);
         }
         item = item.toLowerCase();
-        const room = player.room;
-        if (rooms[room]) return log("You can't take that.", 'red'); // if the room is predefined, you can't take anything
+        const room = rooms[player.room] || player.room;
         const roomItems = Object.keys(room.items).reduce((acc, key) => { // make the room items lowercase for easier comparison
             acc[key.toLowerCase()] = key;
             return acc;
         }, {});
         if (roomItems[item]) { // if the item exists in the room
             const originalItemName = roomItems[item]; // get the original item name
-            const interact = itemsJSON[originalItemName].interact;
-            const itemData = itemsJSON[originalItemName];
+            item = itemsJSON[originalItemName] || room.items[originalItemName];
+            const interact = item.interact;
             if (interact) {
-                if (itemsJSON[originalItemName].unique) player.uniques.push(room.items[originalItemName]); // add the unique item to the player's list of found uniques
+                if (item.unique) player.uniques.push(room.items[originalItemName]); // add the unique item to the player's list of found uniques
                 delete room.items[originalItemName]; // remove the item from the room
-                log(interact, 'yellow');
+                log(interact.description || interact, 'yellow');
                 term.nextLine(2);
                 // effects
-                if (itemData.effect) {
-                    const effect = itemData.effect;
+                if (item.effect) {
+                    const effect = item.effect;
                     if (effect.type === 'move') {
                         player.room = effect.value;
-                        updatePlayerVariable(player);
+                        await updatePlayerVariable(player);
                     }
                     if (effect.type === 'level') {
                         player.level += effect.value;
-                        updatePlayerVariable(player);
+                        await updatePlayerVariable(player);
                     }
                 }
             } else if (!interact) {
@@ -258,7 +257,11 @@ const commands = {
         }
         item = item.toLowerCase().trim();
         const room = player.room;
-        if (rooms[room]) return log("You can't take that.", 'red'); // if the room is predefined, you can't take anything
+        if (rooms[room]) {
+            log("You can't take that.", 'red'); // if the room is predefined, you can't take anything
+            term.nextLine(1);
+            return;
+        }
         const roomItems = Object.keys(room.items).reduce((acc, key) => { // make the room items lowercase for easier comparison
             acc[key.toLowerCase()] = key;
             return acc;

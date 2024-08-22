@@ -11,11 +11,11 @@
             "orb": {
                 "description": "A glowing orb that seems to be pulsating with energy. It seems to be calling out to you.",
                 "interact": {
-                    "description":"You reach out to touch the orb and as you do, you feel a surge of energy coursing through your body. You feel a sense of power and purpose. You feel like you have been chosen by the god of death.",
-                    "effect": {
-                        "type": "move",
-                        "value": "shrine"
-                    }
+                    "description":"You reach out to touch the orb and as you do, you feel a surge of energy coursing through your body. You feel a sense of power and purpose. You feel like you have been chosen by the god of death."
+                },
+                "effect": {
+                    "type": "move",
+                    "value": "shrine"
                 }
             }
         }
