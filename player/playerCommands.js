@@ -151,7 +151,9 @@ const commands = {
                 log(roomDescription, 'yellow');
                 term.nextLine(2);
             } else {
-                lines = await asciiLook(fs.readFileSync(`./ASCII/${player.room}.txt`, 'utf8'), roomDescription);
+                let center = false;
+                if (player.room === 'store') center = true;
+                lines = await asciiLook(fs.readFileSync(`./ASCII/${player.room}.txt`, 'utf8'), roomDescription, center);
                 term.column(term.width / 2);
             }
         } else if (room.items && room.items[item]) {
@@ -524,11 +526,12 @@ const commands = {
             if (player.essence <= 0) {
                 term.clear();
                 hasAsciiArt = false;
-                log("You have been defeated.", 'red');
-                // implement game over logic
-                updatePlayerVariable(player);
+                player.room = 'store';
+                player.essence = 30;
+                await updatePlayerVariable(player);
+                log("You have died.", 'red');
                 term.nextLine(2);
-                return;
+                return await commands['look']();
             }
         }
         term.nextLine(2);

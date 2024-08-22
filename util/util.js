@@ -57,6 +57,9 @@ async function asciiLook(ASCII, message, center) {
     const segments = message.split('\n');
     // const lines = await message.match(regex);
     // await logDebug(segments);
+    const midheight = term.height / 2;
+    // term.moveTo(1, midheight * 0.25); // move to the middle vertically
+    if (center) term.moveTo(1, midheight * 0.25); // move to the middle vertically for the ASCII art
     log(ASCII); // ASCII art will be printed on the left side
     if (center) term.moveTo(mid, term.height / 2.5); // move to the middle vertically aswell
     else term.moveTo(mid, 1); // move to the middle of the terminal
@@ -79,6 +82,7 @@ async function asciiLook(ASCII, message, center) {
             term.column(mid); // we are doing column again because, what if the next line isn't a message line and doesn't end up calling term.column?
         });
     });
+    if (center) lineAmount = term.height / 2.5 + lineAmount;
     return lineAmount; // return total number of lines
 }
 
