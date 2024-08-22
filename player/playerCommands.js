@@ -294,23 +294,22 @@ const commands = {
                 const effect = itemData.effect;
                 // effects
                 if (effect.type === 'heal') {
-                    if (isFighting) return effect;
                     player.health += effect.value;
                     await updatePlayerVariable(player);
+                    if (isFighting) return effect;
                 }
                 if (effect.type === 'experience') {
-                    if (isFighting) return effect;
                     player.experience += effect.value;
                     await updatePlayerVariable(player);
+                    if (isFighting) return effect;
                 }
                 if (effect.type === 'damage') {
-                    if (isFighting) return effect;
                     await updatePlayerVariable(player);
+                    if (isFighting) return effect;
                 } else if (effect.type === 'damage' && !isFighting) {
                     log("You can't use that item here.", 'red');
                     term.nextLine(2);
                 }
-                return effect;
             } else {
                 log("You can't use that item.", 'red');
                 term.nextLine(2);
@@ -354,12 +353,7 @@ const commands = {
 
         log(`You are fighting ${enemy.name}!`, 'yellow'); // ascii log for combat eventually
         term.nextLine(2);
-
-        const playerDamage = Math.floor(Math.random() * player.level) + 1; // temporary damage calculation
-        const enemyDamage = Math.floor(Math.random() * enemy.damage) + 1; // temporary damage calculation
-
         let usedAbilities = [];
-        
         while (player.health > 0 && enemy.health > 0) {
             const location = await term.getCursorLocation();
             if (location.y > term.height - 2) {
@@ -377,6 +371,7 @@ const commands = {
                 const args = action.split(' ');
                 player.defending = false; // reset defending status
                 if (action === 'hit') {
+                    const playerDamage = Math.floor(Math.random() * player.level) + 1;
                     enemy.health -= playerDamage;
                     log(`You hit ${enemy.name} for ${playerDamage} damage!`);
                     term.nextLine(1);
@@ -388,10 +383,15 @@ const commands = {
                     turnEnded = true;
                 } else if (args[0] === 'use') {
                     if (args[1]) {
-                        const effect = await commands['use'](args.slice(1).join(' ')); // FIXME always undefined
-                        await logDebug(effect);
-                        if (effect.type === 'heal') player.health += effect.value;
-                        if (effect.type === 'damage') enemy.health -= effect.value;
+                        const effect = await commands['use'](args.slice(1).join(' ')) || null;
+                        if (effect === null) continue; // the use command will log the "you don't have that item" message
+                        // await logDebug(effect);
+                        // we shouldn't have an if statement for every effect since it's already done in the use command (except damage type)
+                        if (effect.type === 'damage') {
+                            enemy.health -= effect.value;
+                            log(`You hit ${enemy.name} for ${effect.value} damage!`);
+                            term.nextLine(1);
+                        }
                         if (effect.cost) effect.cost.forEach(cost => {
                             if (cost.type === 'essence') player.essence -= cost.value;
                             if (cost.type === 'souls') player.souls -= cost.value;
@@ -427,15 +427,17 @@ const commands = {
                         }
                     });
                     validAction = true;
-                } else if (action === '' && !validAction) {
+                } else if (!validAction) {
                     log("Invalid action.", 'red');
                     term.nextLine(1);
+                    continue;
                 }
             }
 
             if (enemy.health <= 0) {
                 log(`You have defeated ${enemy.name}!`, 'green');
                 player.experience += enemy.experience;
+                delete player.room.enemies[enemy.name]; 
                 term.nextLine(2);
                 break;
             }
@@ -445,6 +447,7 @@ const commands = {
             term.nextLine(1);
             const enemyAction = Math.random() > 0.5 ? 'hit' : 'special'; // temporary enemy action
             if (enemyAction === 'hit') {
+                const enemyDamage = Math.floor(Math.random() * enemy.damage) + 1;
                 player.essence -= enemyDamage;
                 log(`${enemy.name} hits you for ${enemyDamage} damage!`, 'red');
                 term.nextLine(1);
