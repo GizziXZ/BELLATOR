@@ -200,13 +200,15 @@ const commands = {
         const room = rooms[player.room] || player.room;
         let targetRoom = room.exits[exit];
 
+        if (exit === 'forward' && player.room === 'gameSTART') {
+            return startGame(); // if the player is in the starting call, we will start the game
+        }
         if (!targetRoom) {
             log("I don't see that exit.", 'red');
             term.nextLine(2);
             return;
         }
         player.from = exit;
-        if (player.room === 'gameSTART') return startGame(); // if the player is in the starting call, we will start the game
         if (rooms[player.room] && rooms[player.room].exits[exit]) { // If the target room is predefined
             player.room = targetRoom;
             await updatePlayerVariable(player);
