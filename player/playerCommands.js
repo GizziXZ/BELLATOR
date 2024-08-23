@@ -1,129 +1,21 @@
 const term = require('terminal-kit').terminal;
 const rooms = require('../data/rooms.json');
 const fs = require('fs');
-const { log, savePlayer, logDebug, asciiLook, playSound, fadeOut, stopMusic } = require('../util/util');
+const { log, logDebug, asciiLook, playSound, fadeOut, stopMusic, generateRandomRoom, displayEssence } = require('../util/util.js');
+const { updatePlayerVariable, resetVariables, player } = require('./playerManager.js');
 const itemsJSON = require('../data/items.json');
 const enemiesJSON = require('../data/enemies.json');
+const Enemy = require('../data/Enemy.js');
 
-let player;
 let hasAsciiArt = false; // Global variable to track ASCII art availability
 let lines; // Global variable to store the amount of lines in the ASCII message
 let isFighting; // Global variable to track if the player is in combat
 
 // TODO - music/sound effects for ambiance and dialogue (we can play a single sound on loop during dialogue and then stop it when the dialogue ends)
-// TODO - combat system (player and enemy stats, abilities, etc.)
-
-class Room {
-    constructor(name, description) {
-        this.name = name;
-        this.description = description;
-        this.exits = {};
-        this.items = {};
-        this.enemies = {};
-    }
-}
-
-class Enemy {
-    constructor(name, health, level, damage, status) {
-        this.name = name;
-        this.health = health;
-        this.level = level;
-        this.damage = damage;
-        this.status = {};
-    }
-
-    takeDamage(amount) {
-        this.health -= amount;
-        if (this.health < 0) this.health = 0;
-    }
-
-    isAlive() {
-        return this.health > 0;
-    }
-}
-
-// function to generate a random room
-function generateRandomRoom() {
-    const roomNames = ["Cave", "Dungeon", "Hall", "Chamber", "Crypt"];
-    const roomDescriptions = [
-        "A dark and damp cave.",
-        "A cold and eerie dungeon.",
-        "A grand hall with high ceilings.",
-        "A small chamber with flickering torches.",
-        "A crypt with ancient tombs."
-    ];
-    
-    const randomIndex = Math.floor(Math.random() * roomNames.length);
-    const roomName = roomNames[randomIndex] + Math.floor(Math.random() * 1000);
-    const roomDescription = roomDescriptions[randomIndex];
-
-    // logDebug(`${roomName}, ${roomDescription}`);
-
-    const newRoom = new Room(roomName, roomDescription);
-    const items = Object.keys(itemsJSON);
-
-    // add random enemies to the room using rng
-    const enemies = Object.keys(enemiesJSON);
-    enemies.forEach(enemy => {
-        if (Math.random() < enemiesJSON[enemy].spawn) { // Randomly decide whether to add an enemy (based off the enemy's spawn chance)
-            newRoom.enemies[enemiesJSON[enemy].name] = enemy;
-        }
-    });
-
-    // add random items to the room using rng
-    items.forEach(item => {
-        if (itemsJSON[item].unique && player.uniques.includes(item)) return; // Skip adding unique items that the player has already found
-        if (Math.random() < itemsJSON[item].rarity) { // Randomly decide whether to add an item (based off the item's rarity)
-            newRoom.items[itemsJSON[item].name] = item;
-        }
-    });
-
-    // add random exits to the room using rng
-    const directions = ["north", "south", "east", "west"];
-    function setDirections() {
-        const from = player.from;
-        directions.forEach(direction => {
-            if (Math.random() > 0.5) { // Randomly decide whether to add an exit
-                const targetRoom = roomNames[Math.floor(Math.random() * roomNames.length)] + Math.floor(Math.random() * 1000);
-                // prevent backtracking
-                if (direction === 'north' && from === 'south') return;
-                if (direction === 'south' && from === 'north') return;
-                if (direction === 'east' && from === 'west') return;
-                if (direction === 'west' && from === 'east') return;
-                newRoom.exits[direction] = targetRoom;
-            }
-        });
-        if (Object.keys(newRoom.exits).length === 0) setDirections(); // if no exits were added, try again
-        return newRoom;
-    }
-    return setDirections();
-}
-
-function updateLevel() {
-    if (player.experience >= player.level * 80) {
-        player.level++;
-        player.experience - player.level * 80;
-        player.essence = 100;
-        log(`You have leveled up to level ${player.level}!`, 'green');
-        term.nextLine(1);
-    }
-}
-
-function updatePlayerVariable(data) {
-    if (!data) return player = JSON.parse(fs.readFileSync('./player/player.json', 'utf8'));
-    fs.writeFileSync('./player/player.json', JSON.stringify(data));
-    updateLevel();
-    return player = JSON.parse(fs.readFileSync('./player/player.json', 'utf8'));
-}
-
-function resetVariables() {
-    hasAsciiArt = false;
-    lines = undefined;
-}
 
 const commands = {
     look: async (item) => {
-        updatePlayerVariable();
+        await updatePlayerVariable();
         const room = rooms[player.room] || player.room;
         let roomDescription = room.description;
         hasAsciiArt = false; // Reset the ASCII art flag
@@ -199,9 +91,9 @@ const commands = {
 
         const room = rooms[player.room] || player.room;
         let targetRoom = room.exits[exit];
-
         if (exit === 'forward' && player.room === 'gameSTART') {
-            return startGame(); // if the player is in the starting call, we will start the game
+            await startGame();
+            return;
         }
         if (!targetRoom) {
             log("I don't see that exit.", 'red');
@@ -381,13 +273,6 @@ const commands = {
                     }
                 });
             });
-        }
-
-        async function displayEssence() {
-            const location = await term.getCursorLocation();
-            term.moveTo(term.width - 13, 1);
-            term.bgWhite.black(`Essence: ${player.essence}`); // display the player's essence in the top right corner
-            term.moveTo(location.x, location.y); // move back where we were after displaying essence
         }
 
         if (!enemy) {
@@ -728,12 +613,9 @@ async function startGameplay(pause) {
 
 async function startGame() { // this function will be called when the game is ACTUALLY, ACTUALLY starting. so we are now procedurally generating and all that
     term.clear();
-    updatePlayerVariable();
     player.room = generateRandomRoom();
-    updatePlayerVariable(player);
     await commands['look'](); // on game launch, we will run the look command to display the current room to continue where we left off
     // term.nextLine(2);
-    gameWaitForInput();
 }
 
 module.exports = {

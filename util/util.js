@@ -1,6 +1,10 @@
 const term = require('terminal-kit').terminal;
 const fs = require('fs/promises');
 const { existsSync } = require('fs');
+const { player } = require('../player/playerManager.js');
+const itemsJSON = require('../data/items.json');
+const enemiesJSON = require('../data/enemies.json');
+const Room = require('../data/Room.js');
 
 /**
  * Logs a message to the terminal.
@@ -43,65 +47,6 @@ async function waitForResponse(dialogue, delay, baseColumn, baseLine, nextLine) 
     });
 }
 
-/**
- * Displays ASCII art and a message on the terminal.
- * 
- * @param {string} ASCII - The ASCII art to be displayed.
- * @param {string} message - The message to be displayed.
- * @param {boolean} center - Whether the message should be centered.
- */
-async function asciiLook(ASCII, message, center) {
-    term.clear();
-    let mid = Math.floor(term.width / 2);
-    // if (center) mid = Math.floor(term.width / 1.6);
-    const regex = new RegExp(`.{1,${term.width - mid + 1}}`,'g')
-    const segments = message.split('\n');
-    // const lines = await message.match(regex);
-    // await logDebug(segments);
-    const midheight = term.height / 2;
-    // term.moveTo(1, midheight * 0.25); // move to the middle vertically
-    if (center) term.moveTo(term.width / 0.25, midheight * 0.25); // move to the middle vertically for the ASCII art
-    log(ASCII); // ASCII art will be printed on the left side
-    if (center) term.moveTo(mid, term.height / 2.5); // move to the middle vertically aswell
-    else term.moveTo(mid, 1); // move to the middle of the terminal
-    // term.column(mid + 1); // using the middle of the terminal as a wall
-    let lineAmount = 0;
-    segments.forEach(segment => {
-        const lines = segment.match(regex);
-        if (segment === '') {
-            term.nextLine(1);
-            lineAmount++;
-            return;
-        }
-        lines.forEach(line => {
-            line = line.trim(); // remove useless whitespace
-            lineAmount++;
-            // logDebug(line);
-            term.column(mid);
-            log(line)
-            term.nextLine(1);
-            term.column(mid); // we are doing column again because, what if the next line isn't a message line and doesn't end up calling term.column?
-        });
-    });
-    if (center) lineAmount = term.height / 2.5 + lineAmount;
-    return lineAmount; // return total number of lines
-}
-
-async function logDebug(message) { // used for debugging since using the terminal isn't ideal for this project
-    // message = message.toString();
-    const stack = new Error().stack;
-    const caller = stack.split('\n')[2].trim();
-    message = `${new Date().toLocaleString('en-US', { hour: 'numeric', minute: 'numeric', hour12: true })} - ${message} (${caller})\n`;
-    if (!existsSync('./log.txt')) {
-        await fs.writeFile('./log.txt', message);
-    } else {
-        await fs.appendFile('./log.txt', message);
-    }
-}
-
-async function savePlayer(data) {
-    await fs.writeFile('./player/player.json', JSON.stringify(data));
-}
 
 // Audic caching because it takes too long to play audio otherwise
 let AudicInstance;
@@ -166,6 +111,130 @@ function stopMusic() {
     currentAudio.currentTime = 0; // reset the audio
 }
 
+// function to generate a random room
+function generateRandomRoom() {
+    const roomNames = ["Cave", "Dungeon", "Hall", "Chamber", "Crypt"];
+    const roomDescriptions = [
+        "A dark and damp cave.",
+        "A cold and eerie dungeon.",
+        "A grand hall with high ceilings.",
+        "A small chamber with flickering torches.",
+        "A crypt with ancient tombs."
+    ];
+    
+    const randomIndex = Math.floor(Math.random() * roomNames.length);
+    const roomName = roomNames[randomIndex] + Math.floor(Math.random() * 1000);
+    const roomDescription = roomDescriptions[randomIndex];
+
+    // logDebug(`${roomName}, ${roomDescription}`);
+
+    const newRoom = new Room(roomName, roomDescription);
+    const items = Object.keys(itemsJSON);
+
+    // add random enemies to the room using rng
+    const enemies = Object.keys(enemiesJSON);
+    enemies.forEach(enemy => {
+        if (Math.random() < enemiesJSON[enemy].spawn) { // Randomly decide whether to add an enemy (based off the enemy's spawn chance)
+            newRoom.enemies[enemiesJSON[enemy].name] = enemy;
+        }
+    });
+
+    // add random items to the room using rng
+    items.forEach(item => {
+        if (itemsJSON[item].unique && player.uniques.includes(item)) return; // Skip adding unique items that the player has already found
+        if (Math.random() < itemsJSON[item].rarity) { // Randomly decide whether to add an item (based off the item's rarity)
+            newRoom.items[itemsJSON[item].name] = item;
+        }
+    });
+
+    // add random exits to the room using rng
+    const directions = ["north", "south", "east", "west"];
+    function setDirections() {
+        const from = player.from;
+        directions.forEach(direction => {
+            if (Math.random() > 0.5) { // Randomly decide whether to add an exit
+                const targetRoom = roomNames[Math.floor(Math.random() * roomNames.length)] + Math.floor(Math.random() * 1000);
+                // prevent backtracking
+                if (direction === 'north' && from === 'south') return;
+                if (direction === 'south' && from === 'north') return;
+                if (direction === 'east' && from === 'west') return;
+                if (direction === 'west' && from === 'east') return;
+                newRoom.exits[direction] = targetRoom;
+            }
+        });
+        if (Object.keys(newRoom.exits).length === 0) setDirections(); // if no exits were added, try again
+        return newRoom;
+    }
+    return setDirections();
+}
+
+/**
+ * Displays ASCII art and a message on the terminal.
+ * 
+ * @param {string} ASCII - The ASCII art to be displayed.
+ * @param {string} message - The message to be displayed.
+ * @param {boolean} center - Whether the message should be centered.
+ */
+async function asciiLook(ASCII, message, center) {
+    term.clear();
+    let mid = Math.floor(term.width / 2);
+    // if (center) mid = Math.floor(term.width / 1.6);
+    const regex = new RegExp(`.{1,${term.width - mid + 1}}`,'g')
+    const segments = message.split('\n');
+    // const lines = await message.match(regex);
+    // await logDebug(segments);
+    const midheight = term.height / 2;
+    // term.moveTo(1, midheight * 0.25); // move to the middle vertically
+    if (center) term.moveTo(term.width / 0.25, midheight * 0.25); // move to the middle vertically for the ASCII art
+    log(ASCII); // ASCII art will be printed on the left side
+    if (center) term.moveTo(mid, term.height / 2.5); // move to the middle vertically aswell
+    else term.moveTo(mid, 1); // move to the middle of the terminal
+    // term.column(mid + 1); // using the middle of the terminal as a wall
+    let lineAmount = 0;
+    segments.forEach(segment => {
+        const lines = segment.match(regex);
+        if (segment === '') {
+            term.nextLine(1);
+            lineAmount++;
+            return;
+        }
+        lines.forEach(line => {
+            line = line.trim(); // remove useless whitespace
+            lineAmount++;
+            // logDebug(line);
+            term.column(mid);
+            log(line)
+            term.nextLine(1);
+            term.column(mid); // we are doing column again because, what if the next line isn't a message line and doesn't end up calling term.column?
+        });
+    });
+    if (center) lineAmount = term.height / 2.5 + lineAmount;
+    return lineAmount; // return total number of lines
+}
+
+async function logDebug(message) { // used for debugging since using the terminal isn't ideal for this project
+    // message = message.toString();
+    const stack = new Error().stack;
+    const caller = stack.split('\n')[2].trim();
+    message = `${new Date().toLocaleString('en-US', { hour: 'numeric', minute: 'numeric', hour12: true })} - ${message} (${caller})\n`;
+    if (!existsSync('./log.txt')) {
+        await fs.writeFile('./log.txt', message);
+    } else {
+        await fs.appendFile('./log.txt', message);
+    }
+}
+
+async function savePlayer(data) {
+    await fs.writeFile('./player/player.json', JSON.stringify(data));
+}
+
+async function displayEssence() {
+    const location = await term.getCursorLocation(); // await is necessary
+    term.moveTo(term.width - 13, 1);
+    term.bgWhite.black(`Essence: ${player.essence}`); // display the player's essence in the top right corner
+    term.moveTo(location.x, location.y); // move back where we were after displaying essence
+}
+
 module.exports = {
     log,
     waitForResponse,
@@ -174,5 +243,7 @@ module.exports = {
     asciiLook,
     playSound,
     fadeOut,
-    stopMusic
+    stopMusic,
+    generateRandomRoom,
+    displayEssence
 };
