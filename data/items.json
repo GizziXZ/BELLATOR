@@ -8,19 +8,21 @@
             "type": "heal",
             "value": 5
         },
+        "price": 8,
         "rarity": 0.09,
         "unique": false,
         "interactOnly": false
     },
     "Grimoire": {
         "name": "Grimoire",
-        "description": "Jona doesn't like it when you talk about magic. Gain 10 experience",
+        "description": "Jona doesn't like magic. Gain 10 experience",
         "use":"You read the grimoire and feel a surge of knowledge. Jona disapproves.",
         "type": "consumable",
         "effect": {
             "type": "experience",
             "value": 10
         },
+        "price": 10,
         "rarity": 0.07,
         "unique": false,
         "interactOnly": false
@@ -37,6 +39,7 @@
                 "essence": 5
             }
         },
+        "price": 15,
         "rarity": 0.06,
         "unique": false,
         "interactOnly": false

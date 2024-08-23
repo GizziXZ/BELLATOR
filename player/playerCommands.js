@@ -354,6 +354,11 @@ const commands = {
             });
         }
 
+        if (!enemy) {
+            log("You need to specify an enemy to fight.", 'red');
+            return term.nextLine(2);
+        }
+
         enemy = enemy.toLowerCase().trim();
         const enemyKey = Object.keys(enemiesJSON).find(key => key.toLowerCase() === enemy);
         const enemyData = enemiesJSON[enemyKey];
@@ -544,6 +549,36 @@ const commands = {
                 log(`   - ${ability}: ${data.description}\n`, 'yellow');
             }
             term.nextLine(1)
+        },
+        store: async (action, item) => {
+            if (player.room !== 'store') {
+                log("You are not in the store.", 'red');
+                return term.nextLine(2);
+            }
+            resetVariables();
+            
+            if (!action) {
+                log("You need to specify an action.", 'red');
+                return term.nextLine(2);
+            }
+
+            action = action.toLowerCase().trim();
+
+            if (action === 'view') {
+                term.clear();
+                log('The storekeeper remains unresponsive. You can still see the items on display.');
+                term.nextLine(1);
+                log(`Items for sale:`);
+                term.nextLine(1);
+                for (const [item, data] of Object.entries(itemsJSON)) {
+                    if (!data.price) continue;
+                    if (player.uniques.includes(item)) continue; // don't show unique items that the player has already found
+                    log(`   - (${data.price} souls) ${item}: ${data.description}\n`);
+                }
+                term.nextLine(2);
+            } else if (action === 'buy') {
+                // WIP
+            }
         }
     // help: () => {
     //     log(`Commands: ${Object.keys(commands)}`, 'yellow');

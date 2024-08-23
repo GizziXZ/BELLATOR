@@ -52,14 +52,15 @@ async function waitForResponse(dialogue, delay, baseColumn, baseLine, nextLine) 
  */
 async function asciiLook(ASCII, message, center) {
     term.clear();
-    const mid = Math.floor(term.width / 2);
+    let mid = Math.floor(term.width / 2);
+    // if (center) mid = Math.floor(term.width / 1.6);
     const regex = new RegExp(`.{1,${term.width - mid + 1}}`,'g')
     const segments = message.split('\n');
     // const lines = await message.match(regex);
     // await logDebug(segments);
     const midheight = term.height / 2;
     // term.moveTo(1, midheight * 0.25); // move to the middle vertically
-    if (center) term.moveTo(1, midheight * 0.25); // move to the middle vertically for the ASCII art
+    if (center) term.moveTo(term.width / 0.25, midheight * 0.25); // move to the middle vertically for the ASCII art
     log(ASCII); // ASCII art will be printed on the left side
     if (center) term.moveTo(mid, term.height / 2.5); // move to the middle vertically aswell
     else term.moveTo(mid, 1); // move to the middle of the terminal
