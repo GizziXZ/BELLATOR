@@ -103,7 +103,7 @@ async function savePlayer(data) {
     await fs.writeFile('./player/player.json', JSON.stringify(data));
 }
 
-// Audic caching because it takes too long to play audio
+// Audic caching because it takes too long to play audio otherwise
 let AudicInstance;
 let footsteps;
 let ambientHorn;
@@ -112,14 +112,58 @@ async function playSound(sound, loop) {
     if (!AudicInstance) {
         const { default: Audic } = await import('audic');
         AudicInstance = Audic;
-        footsteps = new Audic('./audio/indoor-footsteps.mp3');
-        ambientHorn = new Audic('./audio/horn-ambience.wav');
+        footsteps = new AudicInstance('./audio/indoor-footsteps.wav');
+        ambientHorn = new AudicInstance('./audio/horn-ambience.wav');
+        combatMusic = new AudicInstance('./audio/BELLATOR_1.2.wav');
     }
     if (sound === 'footsteps') {
+        footsteps.volume = 1;
         await footsteps.play();
     } else if (sound === 'ambientHorn') {
+        ambientHorn.volume = 1;
         await ambientHorn.play();
+    } else if (sound === 'combat music') {
+        combatMusic.volume = 1;
+        await combatMusic.play();
+        combatMusic.loop = loop; // loop the combat music
     }
+}
+
+// fades out the current audio
+async function fadeOut() {
+    if (!AudicInstance) return;
+    let currentAudio;
+    if (footsteps.playing) {
+        currentAudio = footsteps;
+    } else if (ambientHorn.playing) {
+        currentAudio = ambientHorn;
+    } else if (combatMusic.playing) {
+        currentAudio = combatMusic;
+    } else {
+        return;
+    }
+    let volume = currentAudio.volume;
+    while (volume > 0.1) {
+        volume -= 0.1;
+        currentAudio.volume = volume;
+        await new Promise(resolve => setTimeout(resolve, 100));
+    }
+    currentAudio.pause();
+    currentAudio.currentTime = 0; // reset the audio
+}
+
+function stopMusic() {
+    if (!AudicInstance) return;
+    let currentAudio;
+    if (footsteps.playing) {
+        currentAudio = footsteps;
+    } else if (ambientHorn.playing) {
+        currentAudio = ambientHorn;
+    } else if (combatMusic.playing) {
+        currentAudio = combatMusic;
+    }
+    currentAudio.pause();
+    currentAudio.currentTime = 0; // reset the audio
 }
 
 module.exports = {
@@ -128,5 +172,7 @@ module.exports = {
     savePlayer,
     logDebug,
     asciiLook,
-    playSound
+    playSound,
+    fadeOut,
+    stopMusic
 };

@@ -1,7 +1,7 @@
 const term = require('terminal-kit').terminal;
 const rooms = require('../data/rooms.json');
 const fs = require('fs');
-const { log, savePlayer, logDebug, asciiLook, playSound } = require('../util/util');
+const { log, savePlayer, logDebug, asciiLook, playSound, fadeOut, stopMusic } = require('../util/util');
 const itemsJSON = require('../data/items.json');
 const enemiesJSON = require('../data/enemies.json');
 
@@ -206,6 +206,7 @@ const commands = {
             return;
         }
         player.from = exit;
+        if (player.room === 'gameSTART') return startGame(); // if the player is in the starting call, we will start the game
         if (rooms[player.room] && rooms[player.room].exits[exit]) { // If the target room is predefined
             player.room = targetRoom;
             await updatePlayerVariable(player);
@@ -391,7 +392,7 @@ const commands = {
             log("You need to specify an enemy to fight.", 'red');
             return term.nextLine(2);
         }
-
+        playSound('combat music', true);
         enemy = enemy.toLowerCase().trim();
         const enemyKey = Object.keys(enemiesJSON).find(key => key.toLowerCase() === enemy);
         const enemyData = enemiesJSON[enemyKey];
@@ -404,14 +405,14 @@ const commands = {
 
         let pendingMessage;
 
-        displayEssence();
         if (fs.existsSync(`./ASCII/${enemy.name}.txt`)) { // if there is an ASCII art file for the enemy that we are fighting, display it
             hasAsciiArt = true;
             log(fs.readFileSync(`./ASCII/${enemy.name}.txt`, 'utf8'));
-        } else log(`You are fighting ${enemy.name}!`, 'yellow'); // ascii log for combat eventually
+        } else log(`You are fighting ${enemy.name}!`, 'yellow');
         term.nextLine(2);
         let usedAbilities = [];
         while (player.essence > 0 && enemy.health > 0) {
+            await displayEssence();
             const location = await term.getCursorLocation(); // it says await is unnecessary but it doesn't work properly without it
             term.moveTo(location.x, location.y); // move back after displaying essence
             if (location.y > term.height - 2) {
@@ -442,7 +443,7 @@ const commands = {
                         pendingMessage = { message: "You missed!", color: 'red' };
                         log(pendingMessage.message, pendingMessage.color);
                     } else if (critical) {
-                        playerDamage *= 1.3; // 30% increase in damage for a critical hit
+                        Math.floor(playerDamage *= 1.4); // 40% increase in damage for a critical hit
                         pendingMessage = { message: `Critical hit!, You hit ${enemy.name} for ${playerDamage} damage!`, color: 'yellow' };
                         log(pendingMessage.message, pendingMessage.color);
                     } else {
@@ -510,10 +511,11 @@ const commands = {
                     log(pendingMessage.message, pendingMessage.color);
                     term.nextLine(1);
                     const fleeChance = Math.random() * (player.level - enemy.level + 1) * 0.4; // calculate the chance of fleeing based on the level difference, multiplied by 0.4 for better balance
-                    await logDebug(fleeChance);
+                    // await logDebug(fleeChance);
                     if (fleeChance > 0.5) {
                         hasAsciiArt = false;
                         await updatePlayerVariable(player);
+                        fadeOut();
                         term.clear()
                         pendingMessage = { message: "You successfully fled from the battle!\n\nWhat will you do now?"};
                         log(pendingMessage.message);
@@ -537,6 +539,7 @@ const commands = {
                 player.experience += enemyData.experience;
                 player.souls += enemyData.souls;
                 delete player.room.enemies[enemy.name];
+                fadeOut();
                 await updatePlayerVariable(player);
                 term.clear();
                 log(`You have defeated ${enemy.name}. +${enemyData.experience} experience and +${enemyData.souls} souls\n\nWhat will you do now?`);
@@ -563,7 +566,7 @@ const commands = {
             } else if (enemyAction === 'hit') {
                 let enemyDamage = Math.floor(Math.random() * enemy.damage) + 1;
                 if (critical) {
-                    enemyDamage *= 1.3; // 30% increase in damage for a critical hit
+                    Math.floor(enemyDamage *= 1.4); // 40% increase in damage for a critical hit
                     log(`${enemy.name} lands a critical hit on you for ${enemyDamage} damage!`, 'red');
                 } else log(`${enemy.name} hits you for ${enemyDamage} damage!`, 'red');
                 player.essence -= enemyDamage;
@@ -585,6 +588,7 @@ const commands = {
                 player.room = 'store';
                 player.essence = 30;
                 await updatePlayerVariable(player);
+                stopMusic();
                 log("You have died.", 'red');
                 playSound('ambientHorn');
                 term.nextLine(2);
@@ -706,7 +710,6 @@ function gameWaitForInput(pause) {
         if (error) {
             log(error, 'red');
         }
-        if (player.room === 'gameSTART') return startGame(); // if the player is in the starting call, we will start the game
         term.clear();
         await handleCommand(input);
         gameWaitForInput();
