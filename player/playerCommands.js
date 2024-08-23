@@ -11,8 +11,7 @@ let lines; // Global variable to store the amount of lines in the ASCII message
 let isFighting; // Global variable to track if the player is in combat
 
 // TODO - music/sound effects for ambiance and dialogue (we can play a single sound on loop during dialogue and then stop it when the dialogue ends)
-// TODO - combat system
-// TODO - death store
+// TODO - combat system (player and enemy stats, abilities, etc.)
 
 class Room {
     constructor(name, description) {
@@ -171,6 +170,27 @@ const commands = {
             log("You need to specify somewhere to move to.", 'red');
             return term.nextLine(2);
         }
+        await new Promise((resolve) => {
+            if (player.room === 'store') { // FIXME - this isn't working properly
+                // confirm if the player wants to leave the store
+                log("Are you sure you want to leave the store? You can't come back unless you die again. (Y/N)", 'yellow');
+                term.inputField({cancelable: true}, async (error, input) => {
+                    if (error) {
+                        log("Error: " + error, 'red');
+                    } else {
+                        if (input.toLowerCase() == 'no' || input.toLowerCase() == 'n') {
+                            log("You decide to stay in the store.", 'yellow');
+                            term.nextLine(2);
+                            return resolve();
+                        } else if (input.toLowerCase() == 'yes' || input.toLowerCase() == 'y') {
+                            log("You leave the store.", 'yellow');
+                            term.nextLine(2);
+                            resolve();
+                        }
+                    }
+                });
+            }
+        });
         const room = rooms[player.room] || player.room;
         let targetRoom = room.exits[exit];
 
@@ -550,7 +570,7 @@ const commands = {
             }
             term.nextLine(1)
         },
-        store: async (action, item) => {
+        store: async (action) => {
             if (player.room !== 'store') {
                 log("You are not in the store.", 'red');
                 return term.nextLine(2);
@@ -568,6 +588,8 @@ const commands = {
                 term.clear();
                 log('The storekeeper remains unresponsive. You can still see the items on display.');
                 term.nextLine(1);
+                log(`You have ${player.souls} souls.`, 'yellow');
+                term.nextLine(1);
                 log(`Items for sale:`);
                 term.nextLine(1);
                 for (const [item, data] of Object.entries(itemsJSON)) {
@@ -576,8 +598,35 @@ const commands = {
                     log(`   - (${data.price} souls) ${item}: ${data.description}\n`);
                 }
                 term.nextLine(2);
-            } else if (action === 'buy') {
-                // WIP
+            } else if (action.startsWith('buy')) { // there's definitely a better way to do this without startsWith() but i've been trying to figure it out and i can't for some reason lol
+                let item = action.split(' ')[1];
+                logDebug(item);
+                if (!item) { // if the player didn't specify an item to buy
+                    log("You keep trying to get the storekeeper's attention by asking if you can buy something, without specifying what. He remains unresponsive.", 'red');
+                    return term.nextLine(2);
+                }
+                item = item.toLowerCase().trim();
+                const itemKey = Object.keys(itemsJSON).find(key => key.toLowerCase() === item);
+                const itemData = itemsJSON[itemKey];
+
+                if (!itemKey) { // if the item doesn't exist
+                    log("The storekeeper remains unresponsive. You give up on trying to buy the item.", 'red');
+                    return term.nextLine(2);
+                }
+
+                if (player.souls < itemData.price) { // if the player doesn't have enough souls
+                    log("The storekeeper remains unresponsive. The amount of souls you wave in front of him is not enough.", 'red');
+                    return term.nextLine(2);
+                }
+
+                player.souls -= itemData.price;
+                player.inventory.push(itemKey);
+                await updatePlayerVariable(player);
+                log(`The storekeeper finally acknowledges your presence and hands you the ${itemKey}. You hand over ${itemData.price} souls. (${player.souls} souls remaining)`);
+                term.nextLine(2);   
+            } else {
+                log("Invalid action.", 'red');
+                term.nextLine(2);
             }
         }
     // help: () => {
@@ -589,6 +638,7 @@ const commands = {
 commands.go = commands.move;
 commands.cd = commands.move; // for you linux fellas
 commands.walk = commands.move;
+commands.exit = commands.move;
 commands.examine = commands.look;
 commands.inspect = commands.look;
 commands.see = commands.look;
