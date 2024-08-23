@@ -10,11 +10,6 @@ function updatePlayerVariable(data) {
     return player = JSON.parse(fs.readFileSync('./player/player.json', 'utf8'));
 }
 
-function resetVariables() {
-    global.hasAsciiArt = false;
-    global.lines = undefined;
-}
-
 function updateLevel() {
     if (player.experience >= player.level * 80) {
         player.level++;
@@ -27,7 +22,6 @@ function updateLevel() {
 
 module.exports = {
     updatePlayerVariable,
-    resetVariables,
     updateLevel,
     player
 };

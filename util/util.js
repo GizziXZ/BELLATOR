@@ -48,10 +48,13 @@ async function waitForResponse(dialogue, delay, baseColumn, baseLine, nextLine) 
 }
 
 
-// Audic caching because it takes too long to play audio otherwise
+// Audic caching because it takes too long to play audio otherwise (no idea if there's a better way to do this but maybe i'll figure it out later)
 let AudicInstance;
 let footsteps;
 let ambientHorn;
+let combatMusic;
+let hitHurt;
+let miss;
 
 async function playSound(sound, loop) {
     if (!AudicInstance) {
@@ -60,6 +63,8 @@ async function playSound(sound, loop) {
         footsteps = new AudicInstance('./audio/indoor-footsteps.wav');
         ambientHorn = new AudicInstance('./audio/horn-ambience.wav');
         combatMusic = new AudicInstance('./audio/BELLATOR_1.2.wav');
+        hitHurt = new AudicInstance('./audio/hitHurt.wav');
+        miss = new AudicInstance('./audio/miss.wav');
     }
     if (sound === 'footsteps') {
         footsteps.volume = 1;
@@ -71,6 +76,12 @@ async function playSound(sound, loop) {
         combatMusic.volume = 1;
         await combatMusic.play();
         combatMusic.loop = loop; // loop the combat music
+    } else if (sound === 'hitHurt') {
+        hitHurt.volume = 1;
+        await hitHurt.play();
+    } else if (sound === 'miss') {
+        miss.volume = 0.6; // this is a little loud lol
+        await miss.play();
     }
 }
 
@@ -84,6 +95,10 @@ async function fadeOut() {
         currentAudio = ambientHorn;
     } else if (combatMusic.playing) {
         currentAudio = combatMusic;
+    } else if (hitHurt.playing) {
+        currentAudio = hitHurt;
+    } else if (miss.playing) {
+        currentAudio = miss;
     } else {
         return;
     }

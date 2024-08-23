@@ -2,7 +2,7 @@ const term = require('terminal-kit').terminal;
 const rooms = require('../data/rooms.json');
 const fs = require('fs');
 const { log, logDebug, asciiLook, playSound, fadeOut, stopMusic, generateRandomRoom, displayEssence } = require('../util/util.js');
-const { updatePlayerVariable, resetVariables, player } = require('./playerManager.js');
+const { updatePlayerVariable, player } = require('./playerManager.js');
 const itemsJSON = require('../data/items.json');
 const enemiesJSON = require('../data/enemies.json');
 const Enemy = require('../data/Enemy.js');
@@ -12,6 +12,13 @@ let lines; // Global variable to store the amount of lines in the ASCII message
 let isFighting; // Global variable to track if the player is in combat
 
 // TODO - music/sound effects for ambiance and dialogue (we can play a single sound on loop during dialogue and then stop it when the dialogue ends)
+// TODO - help commands, especially for combat
+// TODO - buy abilities from the store
+
+function resetVariables() {
+    hasAsciiArt = false;
+    lines = undefined;
+}
 
 const commands = {
     look: async (item) => {
@@ -75,6 +82,7 @@ const commands = {
                             await commands['look']();
                             resolve(false);
                         } else if (input.toLowerCase() == 'yes' || input.toLowerCase() == 'y') {
+                            resetVariables();
                             term.nextLine(1);
                             log("You leave the store.", 'yellow');
                             term.nextLine(2);
@@ -253,7 +261,7 @@ const commands = {
     },
     stats: () => {
         resetVariables();
-        asciiLook(fs.readFileSync('./ASCII/stats.txt'),`Name: ${player.name}\nEssence: ${player.essence}\nLevel: ${player.level}\nXP: ${player.experience}\nSouls: ${player.souls}\nAbilities: ${Object.keys(player.abilities).join(', ')}`, 'yellow', true);
+        asciiLook(fs.readFileSync('./ASCII/stats.txt'),`Name: ${player.name}\nEssence: ${player.essence}\nLevel: ${player.level}\nXP: ${player.experience}/${player.level * 80}\nSouls: ${player.souls}\nAbilities: ${Object.keys(player.abilities).join(', ')}`, 'yellow', true);
         term.nextLine(2);
         term.column(term.width / 2);
     },
@@ -326,14 +334,17 @@ const commands = {
                     const miss = Math.random() < 0.05; // 5% chance of a miss
                     let playerDamage = Math.floor(Math.random() * player.level) + 1;
                     if (miss) {
+                        playSound('miss');
                         playerDamage = 0;
                         pendingMessage = { message: "You missed!", color: 'red' };
                         log(pendingMessage.message, pendingMessage.color);
                     } else if (critical) {
+                        playSound('hitHurt');
                         Math.floor(playerDamage *= 1.4); // 40% increase in damage for a critical hit
                         pendingMessage = { message: `Critical hit!, You hit ${enemy.name} for ${playerDamage} damage!`, color: 'yellow' };
                         log(pendingMessage.message, pendingMessage.color);
                     } else {
+                        playSound('hitHurt');
                         pendingMessage = { message: `You hit ${enemy.name} for ${playerDamage} damage!` };
                         log(pendingMessage.message);
                     }
@@ -448,9 +459,11 @@ const commands = {
             if (enemyData['criticals']) critical = Math.random() < 0.08; // 8% chance of a critical hit if the enemy is allowed crits
             const miss = Math.random() < 0.05; // 5% chance of a miss
             if (miss) {
+                playSound('miss');
                 log(`${enemy.name} missed their attack!`, 'red');
                 term.nextLine(2);
             } else if (enemyAction === 'hit') {
+                playSound('hitHurt');
                 let enemyDamage = Math.floor(Math.random() * enemy.damage) + 1;
                 if (critical) {
                     Math.floor(enemyDamage *= 1.4); // 40% increase in damage for a critical hit
@@ -459,6 +472,7 @@ const commands = {
                 player.essence -= enemyDamage;
                 term.nextLine(2);
             } else if (enemyAction === 'special') {
+                playSound('hitHurt');
                 const specials = Object.keys(enemyData.specials);
                 const specialIndex = specials[Math.floor(Math.random() * specials.length)];
                 const special = enemyData.specials[specialIndex];
