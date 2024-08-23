@@ -380,6 +380,13 @@ const commands = {
             });
         }
 
+        async function displayEssence() {
+            const location = await term.getCursorLocation();
+            term.moveTo(term.width - 13, 1);
+            term.bgWhite.black(`Essence: ${player.essence}`); // display the player's essence in the top right corner
+            term.moveTo(location.x, location.y); // move back where we were after displaying essence
+        }
+
         if (!enemy) {
             log("You need to specify an enemy to fight.", 'red');
             return term.nextLine(2);
@@ -395,10 +402,7 @@ const commands = {
 
         enemy = new Enemy(enemyData.name, enemyData.health, enemyData.level, enemyData.damage, {});
 
-        function displayEssence() { // FIXME - doesn't update after a clear
-            term.moveTo(term.width - 13, 1);
-            term.bgWhite.black(`Essence: ${player.essence}`);
-        }
+        let pendingMessage;
 
         displayEssence();
         if (fs.existsSync(`./ASCII/${enemy.name}.txt`)) { // if there is an ASCII art file for the enemy that we are fighting, display it
@@ -408,18 +412,20 @@ const commands = {
         term.nextLine(2);
         let usedAbilities = [];
         while (player.essence > 0 && enemy.health > 0) {
-            const location = await term.getCursorLocation();
+            const location = await term.getCursorLocation(); // it says await is unnecessary but it doesn't work properly without it
             term.moveTo(location.x, location.y); // move back after displaying essence
             if (location.y > term.height - 2) {
                 term.clear();
+                await displayEssence();
                 if (hasAsciiArt) {
                     log(fs.readFileSync(`./ASCII/${enemy.name}.txt`, 'utf8'));
                     term.nextLine(1);
                 }
+                log(pendingMessage.message, pendingMessage.color);
+                term.nextLine(2);
             }
             // Player turn
             log("Your turn!", 'yellow');
-            // logDebug(location.y);
             term.nextLine(2);
             let turnEnded = false;
             let validAction = false;
@@ -433,16 +439,22 @@ const commands = {
                     let playerDamage = Math.floor(Math.random() * player.level) + 1;
                     if (miss) {
                         playerDamage = 0;
-                        log("You missed!", 'red');
+                        pendingMessage = { message: "You missed!", color: 'red' };
+                        log(pendingMessage.message, pendingMessage.color);
                     } else if (critical) {
                         playerDamage *= 1.3; // 30% increase in damage for a critical hit
-                        log(`Critical hit!, You hit ${enemy.name} for ${playerDamage} damage!`, 'yellow');
-                    } else log(`You hit ${enemy.name} for ${playerDamage} damage!`);
+                        pendingMessage = { message: `Critical hit!, You hit ${enemy.name} for ${playerDamage} damage!`, color: 'yellow' };
+                        log(pendingMessage.message, pendingMessage.color);
+                    } else {
+                        pendingMessage = { message: `You hit ${enemy.name} for ${playerDamage} damage!` };
+                        log(pendingMessage.message);
+                    }
                     enemy.health -= playerDamage;
                     term.nextLine(2);
                     turnEnded = true;
                 } else if (action === 'defend') {
-                    log("You brace yourself for the next attack.");
+                    pendingMessage = { message: "You brace yourself for the next attack." };
+                    log(pendingMessage.message);
                     term.nextLine(2);
                     player.defending = true;
                     turnEnded = true;
@@ -472,17 +484,18 @@ const commands = {
                             response.selectedText = response.selectedText.split(' - ')[0];
                             const ability = player.abilities[response.selectedText];
                             if (usedAbilities.includes(response.selectedText)) {
-                                log("You have already used that ability once.", 'red');
+                                pendingMessage = { message: "You have already used that ability once.", color: 'red' };
+                                log(pendingMessage.message, pendingMessage.color);
                                 term.nextLine(2);
                             } else {
-                                await logDebug(response.selectedText);
-                                log(`You use ${response.selectedText}.\n${ability.use}`);
+                                pendingMessage = { message: `You use ${response.selectedText}.\n${ability.use}` };
+                                log(pendingMessage.message);
                                 usedAbilities.push(response.selectedText);
                                 term.nextLine(2);
                             }
                             if (ability.effect.type === 'heal') player.essence += ability.effect.value;
                             if (ability.effect.type === 'damage') enemy.health -= ability.effect.value;
-                            if (ability.effect.type === 'stun') enemy.status.stunned = ability.effect.value;
+                            if (ability.effect.type === 'stun') enemy.status.stunned += ability.effect.value;
                             if (ability.cost) ability.cost.forEach(cost => {
                                 if (cost.type === 'essence') player.essence -= cost.value;
                                 if (cost.type === 'souls') player.souls -= cost.value;
@@ -493,7 +506,8 @@ const commands = {
                     });
                     validAction = true;
                 } else if (action == 'flee' || action == 'run') {
-                    log("You attempt to flee from the battle.", 'yellow');
+                    pendingMessage = { message: "You attempt to flee from the battle.", color: 'yellow' };
+                    log(pendingMessage.message, pendingMessage.color);
                     term.nextLine(1);
                     const fleeChance = Math.random() * (player.level - enemy.level + 1) * 0.4; // calculate the chance of fleeing based on the level difference, multiplied by 0.4 for better balance
                     await logDebug(fleeChance);
@@ -501,11 +515,13 @@ const commands = {
                         hasAsciiArt = false;
                         await updatePlayerVariable(player);
                         term.clear()
-                        log("You successfully fled from the battle!\nWhat will you do now?", 'green');
+                        pendingMessage = { message: "You successfully fled from the battle!\n\nWhat will you do now?"};
+                        log(pendingMessage.message);
                         term.nextLine(2);
                         return;
                     } else {
-                        log("You failed to flee from the battle.", 'red');
+                        pendingMessage = { message: "You failed to flee from the battle.", color: 'red' };
+                        log(pendingMessage.message, pendingMessage.color);
                         term.nextLine(2);
                         turnEnded = true;
                     }
@@ -523,7 +539,7 @@ const commands = {
                 delete player.room.enemies[enemy.name];
                 await updatePlayerVariable(player);
                 term.clear();
-                log(`You have defeated ${enemy.name}!\nWhat will you do now?`, 'green');
+                log(`You have defeated ${enemy.name}. +${enemyData.experience} experience and +${enemyData.souls} souls\n\nWhat will you do now?`);
                 term.nextLine(2);
                 return;
             }

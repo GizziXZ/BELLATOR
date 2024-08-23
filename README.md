@@ -1,5 +1,6 @@
 # BELLATOR
 Text-based, roguelite, dungeon-crawler written completely in nodejs using terminal-kit library!
+Music and ASCII art is not created by anyone else. I have made both.
 ###### i DEFINITELY should've used typescript for this, i just don't know how to use typescript lol
 ## Screenshots
 ![image](https://github.com/user-attachments/assets/b1190b20-3e67-48d6-a71b-8c4558fd1e20)
