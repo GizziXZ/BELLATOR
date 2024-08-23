@@ -170,27 +170,33 @@ const commands = {
             log("You need to specify somewhere to move to.", 'red');
             return term.nextLine(2);
         }
-        await new Promise((resolve) => {
-            if (player.room === 'store') { // FIXME - this isn't working properly
+        let proceed = true;
+        if (player.room === 'store') {
+            proceed = await new Promise((resolve) => {
                 // confirm if the player wants to leave the store
-                log("Are you sure you want to leave the store? You can't come back unless you die again. (Y/N)", 'yellow');
+                log("Are you sure you want to leave the store? You can't come back unless you die again. (Y/N) ", 'yellow');
                 term.inputField({cancelable: true}, async (error, input) => {
                     if (error) {
                         log("Error: " + error, 'red');
                     } else {
                         if (input.toLowerCase() == 'no' || input.toLowerCase() == 'n') {
-                            log("You decide to stay in the store.", 'yellow');
-                            term.nextLine(2);
-                            return resolve();
+                            await commands['look']();
+                            resolve(false);
                         } else if (input.toLowerCase() == 'yes' || input.toLowerCase() == 'y') {
+                            term.nextLine(1);
                             log("You leave the store.", 'yellow');
                             term.nextLine(2);
-                            resolve();
+                            resolve(true);
+                        } else { // invalid input
+                            await commands['look']();
+                            resolve(false);
                         }
                     }
                 });
-            }
-        });
+            });
+        };
+        if (!proceed) return;
+
         const room = rooms[player.room] || player.room;
         let targetRoom = room.exits[exit];
 
@@ -202,11 +208,11 @@ const commands = {
         player.from = exit;
         if (rooms[player.room] && rooms[player.room].exits[exit]) { // If the target room is predefined
             player.room = targetRoom;
-            updatePlayerVariable(player);
+            await updatePlayerVariable(player);
             await commands['look']();
         } else { // If the target room is random
             player.room = generateRandomRoom();
-            updatePlayerVariable(player);
+            await updatePlayerVariable(player);
             await commands['look']();
         }
         playSound('footsteps');
@@ -389,6 +395,12 @@ const commands = {
 
         enemy = new Enemy(enemyData.name, enemyData.health, enemyData.level, enemyData.damage, {});
 
+        function displayEssence() { // FIXME - doesn't update after a clear
+            term.moveTo(term.width - 13, 1);
+            term.bgWhite.black(`Essence: ${player.essence}`);
+        }
+
+        displayEssence();
         if (fs.existsSync(`./ASCII/${enemy.name}.txt`)) { // if there is an ASCII art file for the enemy that we are fighting, display it
             hasAsciiArt = true;
             log(fs.readFileSync(`./ASCII/${enemy.name}.txt`, 'utf8'));
@@ -397,6 +409,7 @@ const commands = {
         let usedAbilities = [];
         while (player.essence > 0 && enemy.health > 0) {
             const location = await term.getCursorLocation();
+            term.moveTo(location.x, location.y); // move back after displaying essence
             if (location.y > term.height - 2) {
                 term.clear();
                 if (hasAsciiArt) {
@@ -452,15 +465,17 @@ const commands = {
                     }
                 } else if (action === 'abilities') {
                     const abilities = Object.keys(player.abilities).map(key => `${key} - ${player.abilities[key].description}`);
-                    term.singleColumnMenu(abilities, (error, response) => {
+                    term.singleColumnMenu(abilities, async (error, response) => {
                         if (error) {
                             log("Error: " + error, 'red');
                         } else {
+                            response.selectedText = response.selectedText.split(' - ')[0];
                             const ability = player.abilities[response.selectedText];
                             if (usedAbilities.includes(response.selectedText)) {
                                 log("You have already used that ability once.", 'red');
                                 term.nextLine(2);
                             } else {
+                                await logDebug(response.selectedText);
                                 log(`You use ${response.selectedText}.\n${ability.use}`);
                                 usedAbilities.push(response.selectedText);
                                 term.nextLine(2);
@@ -555,6 +570,7 @@ const commands = {
                 player.essence = 30;
                 await updatePlayerVariable(player);
                 log("You have died.", 'red');
+                playSound('ambientHorn');
                 term.nextLine(2);
                 return await commands['look']();
             }

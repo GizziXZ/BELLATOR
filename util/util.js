@@ -106,15 +106,19 @@ async function savePlayer(data) {
 // Audic caching because it takes too long to play audio
 let AudicInstance;
 let footsteps;
+let ambientHorn;
 
-async function playSound(sound) {
+async function playSound(sound, loop) {
     if (!AudicInstance) {
         const { default: Audic } = await import('audic');
         AudicInstance = Audic;
         footsteps = new Audic('./audio/indoor-footsteps.mp3');
+        ambientHorn = new Audic('./audio/horn-ambience.wav');
     }
     if (sound === 'footsteps') {
         await footsteps.play();
+    } else if (sound === 'ambientHorn') {
+        await ambientHorn.play();
     }
 }
 
