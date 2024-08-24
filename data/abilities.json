@@ -38,5 +38,15 @@
             "duration": 3,
             "multiplied": "damage"
         }
+    },
+    "Focus": {
+        "description": "Increased focus, 50% more likely to dodge for 3 turns",
+        "use": "You focus your mind, increasing your dodge chance by 50% for 3 turns",
+        "effect": {
+            "type": "multiplier",
+            "value": 1.5,
+            "duration": 3,
+            "multiplied": "dodge"
+        }
     }
 }

@@ -14,7 +14,6 @@ let isFighting; // Global variable to track if the player is in combat
 // TODO - music/sound effects for ambiance and dialogue (we can play a single sound on loop during dialogue and then stop it when the dialogue ends)
 // TODO - buy abilities from the store and add more abilities for stuff like increased dodge chance for example
 // TODO - more items that can be randomly found to gain abilities or other effects
-// FIXME - either once a refresh during combat happens, it resets any status effects that the player has (like damage multipliers) or status effects dont work properly
 
 function resetVariables() {
     hasAsciiArt = false;
@@ -369,14 +368,16 @@ const commands = {
                         const miss = Math.random() < 0.05; // 5% chance of a miss
                         let multiplier = 1;
                         if (player.status.damageMultiplier) {
+                            multiplier = player.status.damageMultiplier; // I was so sleep deprived last night that i forgot to add the multiplier and i was wondering why it wasnt working
                             player.status.multiplierDuration--;
                             if (player.status.multiplierDuration === 0) {
+                                log("Your damage multiplier has worn off.", 'yellow');
+                                term.nextLine(1);
                                 delete player.status.damageMultiplier;
                                 await updatePlayerVariable(player);
-                                multiplier = 1;
                             }
                         }
-                        let playerDamage = multiplier * Math.floor(Math.random() * player.level) + 1;
+                        let playerDamage = multiplier * (Math.floor(Math.random() * player.level) + 1);
                         if (miss) {
                             playSound('miss');
                             playerDamage = 0;
@@ -438,9 +439,16 @@ const commands = {
                                 }
                                 if (ability.effect.type === 'heal') player.essence += ability.effect.value;
                                 if (ability.effect.type === 'damage') enemy.health -= ability.effect.value;
-                                if (ability.effect.type === 'stun') enemy.status.stunned += ability.effect.value;
+                                if (ability.effect.type === 'stun') {
+                                    if (enemy.status.stunned) {
+                                        enemy.status.stunned += ability.effect.value;
+                                    } else {
+                                        enemy.status.stunned = ability.effect.value;
+                                    }
+                                }
                                 if (ability.effect.type === 'multiplier') {
-                                    player.status.damageMultiplier = ability.effect.value;
+                                    if (ability.effect.multiplied === 'damage') player.status.damageMultiplier = ability.effect.value;
+                                    if (ability.effect.multiplied === 'dodge') player.status.dodgeMultiplier = ability.effect.value;
                                     player.status.multiplierDuration = ability.effect.duration;
                                 }
                                 if (ability.cost) ability.cost.forEach(cost => {
@@ -457,7 +465,6 @@ const commands = {
                         log(pendingMessage.message, pendingMessage.color);
                         term.nextLine(1);
                         const fleeChance = Math.random() * (player.level - enemy.level + 1) * 0.4; // calculate the chance of fleeing based on the level difference, multiplied by 0.4 for better balance
-                        // await logDebug(fleeChance);
                         if (fleeChance > 0.5) {
                             hasAsciiArt = false;
                             await updatePlayerVariable(player);
@@ -506,9 +513,14 @@ const commands = {
                 let critical;
                 if (enemyData['criticals']) critical = Math.random() < 0.08; // 8% chance of a critical hit if the enemy is allowed crits
                 const miss = Math.random() < 0.05; // 5% chance of a miss
+                const dodge = player.status.dodgeMultiplier ? Math.random() < (0.1 * player.status.dodgeMultiplier) : false; // 10% base dodge chance multiplied by dodge multiplier
                 if (miss) {
                     playSound('miss');
                     log(`${enemy.name} missed their attack!`, 'red');
+                    term.nextLine(2);
+                } else if (dodge) {
+                    playSound('miss');
+                    log(`You dodged ${enemy.name}'s attack!`);
                     term.nextLine(2);
                 } else if (enemyAction === 'hit') {
                     playSound('hitHurt');
@@ -529,6 +541,17 @@ const commands = {
                     if (special.effect.type === 'damage') log(`You take ${enemyDamage} damage!`, 'red');
                     term.nextLine(2);
                     player.essence -= enemyDamage;
+                }
+
+                // handling dodge expiry
+                if (player.status.dodgeMultiplier) {
+                    player.status.dodgeDuration--;
+                    if (player.status.dodgeDuration === 0) {
+                        log("Your increased dodge chance has worn off.", 'yellow');
+                        term.nextLine(1);
+                        delete player.status.dodgeMultiplier;
+                        await updatePlayerVariable(player);
+                    }
                 }
 
                 if (player.essence <= 0) {
