@@ -2,6 +2,7 @@
     "Wraith's Prayer": {
         "description": "Sacrifice 5 Souls to Gain 3 Essence",
         "use": "You pray to the god of death, sacrificing 5 souls to gain 3 essence",
+        "price": 5,
         "effect": {
             "type": "heal",
             "value": 3,
@@ -13,6 +14,7 @@
     "Brand of the Damned": {
         "description": "Brand an enemy for 5 Essence, stunning them for 2 turn",
         "use": "You brand the enemy with the mark of the damned",
+        "price": 10,
         "effect": {
             "type": "stun",
             "value": 2,
@@ -24,6 +26,7 @@
     "Soul Harvest": {
         "description": "Harvest 3 souls from a target",
         "use": "You harvest 3 souls from the target",
+        "price": 12,
         "effect": {
             "type": "soul",
             "value": 3
@@ -32,6 +35,7 @@
     "Manifest Death": {
         "description": "Manifest the god of death, deal 35% more damage for 3 turns",
         "use": "You manifest the god of death, dealing 35% more damage for 3 turns",
+        "price": 12,
         "effect": {
             "type": "multiplier",
             "value": 1.35,
@@ -42,6 +46,7 @@
     "Focus": {
         "description": "Increased focus, 50% more likely to dodge for 3 turns",
         "use": "You focus your mind, increasing your dodge chance by 50% for 3 turns",
+        "price": 10,
         "effect": {
             "type": "multiplier",
             "value": 1.5,

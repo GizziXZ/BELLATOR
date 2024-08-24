@@ -4,6 +4,7 @@ const fs = require('fs');
 const { log, logDebug, asciiLook, playSound, fadeOut, stopMusic, generateRandomRoom, displayEssence } = require('../util/util.js');
 const { updatePlayerVariable, player } = require('./playerManager.js');
 const itemsJSON = require('../data/items.json');
+const abilitiesJSON = require('../data/abilities.json');
 const enemiesJSON = require('../data/enemies.json');
 const Enemy = require('../data/Enemy.js');
 
@@ -12,7 +13,7 @@ let lines; // Global variable to store the amount of lines in the ASCII message
 let isFighting; // Global variable to track if the player is in combat
 
 // TODO - music/sound effects for ambiance and dialogue (we can play a single sound on loop during dialogue and then stop it when the dialogue ends)
-// TODO - buy abilities from the store and add more abilities for stuff like increased dodge chance for example
+// TODO - buy abilities from the store
 // TODO - more items that can be randomly found to gain abilities or other effects
 
 function resetVariables() {
@@ -568,60 +569,75 @@ const commands = {
                 }
             }
             term.nextLine(2);
-            },
-            abilities: () => { // basically a help command for abilities
-                resetVariables();
-                log("Abilities:", 'yellow');
+        }
+    },
+    abilities: {
+        description: "View your character's abilities.",
+        execute: () => {
+            resetVariables();
+            log("Abilities:", 'yellow');
+            term.nextLine(1);
+            for (const [ability, data] of Object.entries(player.abilities)) {
+                log(`   - ${ability}: ${data.description}\n`, 'yellow');
+            }
+            term.nextLine(1)
+        }
+    },
+    store: {
+        description: "Enter the store.",
+        execute: async (action) => {
+            if (player.room !== 'store') {
+                log("You are not in the store.", 'red');
+                return term.nextLine(2);
+            }
+            resetVariables();
+            
+            if (!action) {
+                log("Try: store view, store buy <item>", 'red');
+                return term.nextLine(2);
+            }
+
+            action = action.toLowerCase().trim();
+
+            if (action === 'view') {
+                term.clear();
+                log('The storekeeper remains unresponsive. You can still see the items on display.', 'yellow');
                 term.nextLine(1);
-                for (const [ability, data] of Object.entries(player.abilities)) {
-                    log(`   - ${ability}: ${data.description}\n`, 'yellow');
+                log(`You have ${player.souls} souls.`);
+                term.nextLine(1);
+                log(`Items for sale:`);
+                term.nextLine(1);
+                for (const [item, data] of Object.entries(itemsJSON)) {
+                    if (!data.price) continue;
+                    if (player.uniques.includes(item)) continue; // don't show unique items that the player has already found
+                    log(`   - (${data.price} souls) ${item}: ${data.description}\n`);
                 }
-                term.nextLine(1)
-            },
-            store: async (action) => {
-                if (player.room !== 'store') {
-                    log("You are not in the store.", 'red');
+                for (const [ability, data] of Object.entries(abilitiesJSON)) {
+                    if (!data.price) continue;
+                    if (player.abilities[ability]) continue; // don't show abilities that the player already has. though this might change eventually and i will make an ability rotation system where you can only have like 4 abilities at once
+                    log(`   - (${data.price} souls) ${ability} (ability): ${data.description}\n`);
+                }
+                term.nextLine(2);
+            } else if (action.startsWith('buy')) { // there's definitely a better way to do this without startsWith() but i've been trying to figure it out and i can't for some reason lol
+                let item = action.split(' ')[1];
+                logDebug(item);
+                if (!item) { // if the player didn't specify an item to buy
+                    log("You keep trying to get the storekeeper's attention by asking if you can buy something, without specifying what. He remains unresponsive.", 'red');
                     return term.nextLine(2);
                 }
-                resetVariables();
-                
-                if (!action) {
-                    log("You need to specify an action.", 'red');
+
+                item = item.toLowerCase().trim();
+                const itemKey = Object.keys(itemsJSON).find(key => key.toLowerCase() === item);
+                const itemData = itemsJSON[itemKey];
+                const abilityKey = Object.keys(abilitiesJSON).find(key => key.toLowerCase() === item);
+                const abilityData = abilitiesJSON[abilityKey];
+
+                if (!itemKey && !abilityKey) { // if the item doesn't exist
+                    log("The storekeeper remains unresponsive. You give up on trying to buy the item.", 'red');
                     return term.nextLine(2);
                 }
 
-                action = action.toLowerCase().trim();
-
-                if (action === 'view') {
-                    term.clear();
-                    log('The storekeeper remains unresponsive. You can still see the items on display.');
-                    term.nextLine(1);
-                    log(`You have ${player.souls} souls.`, 'yellow');
-                    term.nextLine(1);
-                    log(`Items for sale:`);
-                    term.nextLine(1);
-                    for (const [item, data] of Object.entries(itemsJSON)) {
-                        if (!data.price) continue;
-                        if (player.uniques.includes(item)) continue; // don't show unique items that the player has already found
-                        log(`   - (${data.price} souls) ${item}: ${data.description}\n`);
-                    }
-                    term.nextLine(2);
-                } else if (action.startsWith('buy')) { // there's definitely a better way to do this without startsWith() but i've been trying to figure it out and i can't for some reason lol
-                    let item = action.split(' ')[1];
-                    logDebug(item);
-                    if (!item) { // if the player didn't specify an item to buy
-                        log("You keep trying to get the storekeeper's attention by asking if you can buy something, without specifying what. He remains unresponsive.", 'red');
-                        return term.nextLine(2);
-                    }
-                    item = item.toLowerCase().trim();
-                    const itemKey = Object.keys(itemsJSON).find(key => key.toLowerCase() === item);
-                    const itemData = itemsJSON[itemKey];
-
-                    if (!itemKey) { // if the item doesn't exist
-                        log("The storekeeper remains unresponsive. You give up on trying to buy the item.", 'red');
-                        return term.nextLine(2);
-                    }
-
+                if (itemKey) {
                     if (player.souls < itemData.price) { // if the player doesn't have enough souls
                         log("The storekeeper remains unresponsive. The amount of souls you wave in front of him is not enough.", 'red');
                         return term.nextLine(2);
@@ -631,13 +647,25 @@ const commands = {
                     player.inventory.push(itemKey);
                     await updatePlayerVariable(player);
                     log(`The storekeeper finally acknowledges your presence and hands you the ${itemKey}. You hand over ${itemData.price} souls. (${player.souls} souls remaining)`);
-                    term.nextLine(2);   
-                } else {
-                    log("Invalid action.", 'red');
+                    term.nextLine(2);
+                } else if (abilityKey) {
+                    if (player.souls < abilityData.price) { // if the player doesn't have enough souls
+                        log("The storekeeper remains unresponsive. The amount of souls you wave in front of him is not enough.", 'red');
+                        return term.nextLine(2);
+                    }
+
+                    player.souls -= abilityData.price;
+                    player.abilities[abilityKey] = abilityData;
+                    await updatePlayerVariable(player);
+                    log(`The storekeeper finally acknowledges your presence and teaches you the ${abilityKey} ability. You hand over ${abilityData.price} souls. (${player.souls} souls remaining)`);
                     term.nextLine(2);
                 }
+            } else {
+                log("Invalid action.", 'red');
+                term.nextLine(2);
             }
-        },
+        }
+    },
     help: {
         description: "Display a list of commands.",
         execute: () => {
