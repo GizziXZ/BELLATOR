@@ -20,5 +20,23 @@
                 "essence": 5
             }
         }
+    },
+    "Soul Harvest": {
+        "description": "Harvest 3 souls from a target",
+        "use": "You harvest 3 souls from the target",
+        "effect": {
+            "type": "soul",
+            "value": 3
+        }
+    },
+    "Manifest Death": {
+        "description": "Manifest the god of death, deal 35% more damage for 3 turns",
+        "use": "You manifest the god of death, dealing 35% more damage for 3 turns",
+        "effect": {
+            "type": "multiplier",
+            "value": 1.35,
+            "duration": 3,
+            "multiplied": "damage"
+        }
     }
 }

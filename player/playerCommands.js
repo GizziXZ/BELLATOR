@@ -12,7 +12,9 @@ let lines; // Global variable to store the amount of lines in the ASCII message
 let isFighting; // Global variable to track if the player is in combat
 
 // TODO - music/sound effects for ambiance and dialogue (we can play a single sound on loop during dialogue and then stop it when the dialogue ends)
-// TODO - buy abilities from the store
+// TODO - buy abilities from the store and add more abilities for stuff like increased dodge chance for example
+// TODO - more items that can be randomly found to gain abilities or other effects
+// FIXME - either once a refresh during combat happens, it resets any status effects that the player has (like damage multipliers) or status effects dont work properly
 
 function resetVariables() {
     hasAsciiArt = false;
@@ -263,11 +265,17 @@ const commands = {
                         if (isFighting) return effect;
                     }
                     if (effect.type === 'damage') {
+                        // there might be some additions needed inside this specific if statements later on
                         await updatePlayerVariable(player);
                         if (isFighting) return effect;
                     } else if (effect.type === 'damage' && !isFighting) {
                         log("You can't use that item here.", 'red');
                         term.nextLine(2);
+                    }
+                    if (effect.type === 'multiplier') { // "hello everybody, my name is markiplier"
+                        // probably additions here too
+                        await updatePlayerVariable(player);
+                        if (isFighting) return effect;
                     }
                 } else {
                     log("You can't use that item.", 'red');
@@ -359,7 +367,16 @@ const commands = {
                     if (action === 'hit') {
                         const critical = Math.random() < 0.08; // 8% chance of a critical hit
                         const miss = Math.random() < 0.05; // 5% chance of a miss
-                        let playerDamage = Math.floor(Math.random() * player.level) + 1;
+                        let multiplier = 1;
+                        if (player.status.damageMultiplier) {
+                            player.status.multiplierDuration--;
+                            if (player.status.multiplierDuration === 0) {
+                                delete player.status.damageMultiplier;
+                                await updatePlayerVariable(player);
+                                multiplier = 1;
+                            }
+                        }
+                        let playerDamage = multiplier * Math.floor(Math.random() * player.level) + 1;
                         if (miss) {
                             playSound('miss');
                             playerDamage = 0;
@@ -422,6 +439,10 @@ const commands = {
                                 if (ability.effect.type === 'heal') player.essence += ability.effect.value;
                                 if (ability.effect.type === 'damage') enemy.health -= ability.effect.value;
                                 if (ability.effect.type === 'stun') enemy.status.stunned += ability.effect.value;
+                                if (ability.effect.type === 'multiplier') {
+                                    player.status.damageMultiplier = ability.effect.value;
+                                    player.status.multiplierDuration = ability.effect.duration;
+                                }
                                 if (ability.cost) ability.cost.forEach(cost => {
                                     if (cost.type === 'essence') player.essence -= cost.value;
                                     if (cost.type === 'souls') player.souls -= cost.value;
@@ -620,7 +641,7 @@ const commands = {
             log("   - hit: Attack the enemy.\n", 'yellow');
             log("   - defend: Defend against the enemy's next attack.\n", 'yellow');
             log("   - use <item>: Use an item from your inventory.\n", 'yellow');
-            log("   - ability <name>: Use a special ability.\n", 'yellow');
+            log("   - abilities: Use a special ability.\n", 'yellow');
             log("   - fightHelp: Display this help message.\n", 'yellow');
             term.nextLine(1);
         }
