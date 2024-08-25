@@ -38,7 +38,7 @@
         }
     },
     "store": {
-        "description": "You are in a store. The storekeeper stands behind a grate, he is a hooded figure with a skeletal face. You feel a chill run down your spine as you look at him. He seems to be waiting for you to make a purchase. \"store view\" to view items",
+        "description": "You are in a store. The storekeeper stands behind a grate, he is a hooded figure with a skeletal face who seems to be unreactive. You feel a chill run down your spine as you look at him. He seems to be waiting for you to make a purchase. \"store view\" to view items",
         "exits": {
             "door":"gameSTART"
         }

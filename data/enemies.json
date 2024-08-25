@@ -21,5 +21,28 @@
         },
         "souls": 1,
         "spawn": 0.16
+    },
+    "Skeleton": {
+        "name": "Skeleton",
+        "description": "A skeleton with a rusted sword and shield. It's eyes glow with a faint blue light.",
+        "health": 10,
+        "level": 1,
+        "criticals": false,
+        "specials": {
+            "Bone Breaker": {
+                "description": "The skeleton swings it's sword at you, you feel a sharp pain in your side.",
+                "effect": {
+                    "type": "damage",
+                    "value": 3
+                }
+            }
+        },
+        "damage": 2,
+        "experience": 8,
+        "loot": {
+            "Potion": 0.1
+        },
+        "souls": 2,
+        "spawn": 0.16
     }
 }

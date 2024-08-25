@@ -56,5 +56,60 @@
         "rarity": 0.03,
         "unique": true,
         "interactOnly": true
+    },
+    "Soulstone": {
+        "name": "Soulstone",
+        "description": "A stone that contains the soul of a fallen warrior. Gain 5 Souls",
+        "use": "You crush the soulstone and feel the souls of the fallen enter you",
+        "type": "consumable",
+        "effect": {
+            "type": "soul",
+            "value": 5
+        },
+        "rarity": 0.08,
+        "unique": false,
+        "interactOnly": false
+    },
+    "Stale Bread": {
+        "name": "Stale Bread",
+        "description": "It's stale. Gain 2 Essence",
+        "use": "You eat the stale bread and feel a bit better",
+        "type": "consumable",
+        "effect": {
+            "type": "heal",
+            "value": 2
+        },
+        "rarity": 0.1,
+        "unique": false,
+        "interactOnly": false
+    },
+    "Strength Potion": {
+        "name": "Strength Potion",
+        "description": "It smells like sweat and iron. Gain increased strength for 5 turns",
+        "use": "You drink the potion and feel stronger",
+        "type": "consumable",
+        "effect": {
+            "type": "multiplier",
+            "value": 1.5,
+            "duration": 5,
+            "multiplied": "damage"
+        },
+        "price": 20,
+        "rarity": 0.04,
+        "unique": false,
+        "interactOnly": false
+    },
+    "Wraith for Dummies": {
+        "name": "Wraith for Dummies",
+        "description": "A book that teaches you how to be a wraith. Learn \"Wraith's Prayer\"",
+        "use": "You read the book and feel a bit more wraithy",
+        "type": "consumable",
+        "effect": {
+            "type": "learn",
+            "value": "Wraith's Prayer"
+        },
+        "rarity": 0.04,
+        "unique": true,
+        "interactOnly": false
     }
 }

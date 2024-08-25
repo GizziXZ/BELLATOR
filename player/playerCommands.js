@@ -13,8 +13,6 @@ let lines; // Global variable to store the amount of lines in the ASCII message
 let isFighting; // Global variable to track if the player is in combat
 
 // TODO - music/sound effects for ambiance and dialogue (we can play a single sound on loop during dialogue and then stop it when the dialogue ends)
-// TODO - buy abilities from the store
-// TODO - more items that can be randomly found to gain abilities or other effects
 
 function resetVariables() {
     hasAsciiArt = false;
@@ -46,7 +44,6 @@ const commands = {
             if (enemies) roomDescription += `\n\nEnemies: ${enemies}`;
 
             if (!item) {
-                // logDebug(JSON.stringify(room))
                 if (!hasAsciiArt) {
                     resetVariables();
                     log(roomDescription, 'yellow');
@@ -277,6 +274,14 @@ const commands = {
                         await updatePlayerVariable(player);
                         if (isFighting) return effect;
                     }
+                    if (effect.type === 'soul') {
+                        player.souls += effect.value;
+                        await updatePlayerVariable(player);
+                    }
+                    if (effect.type === 'learn') {
+                        player.abilities[effect.value] = abilitiesJSON[effect.value];
+                        await updatePlayerVariable(player);
+                    }
                 } else {
                     log("You can't use that item.", 'red');
                     term.nextLine(2);
@@ -496,7 +501,17 @@ const commands = {
                     fadeOut();
                     await updatePlayerVariable(player);
                     term.clear();
-                    log(`You have defeated ${enemy.name}. +${enemyData.experience} experience and +${enemyData.souls} souls\n\nWhat will you do now?`);
+                    log(`You have defeated ${enemy.name}. +${enemyData.experience} experience and +${enemyData.souls} souls`);
+                    if (enemy.loot) {
+                        term.nextLine(1);
+                        for (const [item, data] of Object.entries(enemy.loot)) {
+                            player.inventory.push(item);
+                            log(`You found ${item} on the enemy!`, 'yellow');
+                            term.nextLine(1);
+                        }
+                        term.nextLine(1);
+                    } else term.nextLine(2);
+                    log(`What will you do now?`)
                     term.nextLine(2);
                     return;
                 }
@@ -608,12 +623,12 @@ const commands = {
                 log(`Items for sale:`);
                 term.nextLine(1);
                 for (const [item, data] of Object.entries(itemsJSON)) {
-                    if (!data.price) continue;
+                    if (!data.price) continue; // don't show items that don't have a price
                     if (player.uniques.includes(item)) continue; // don't show unique items that the player has already found
                     log(`   - (${data.price} souls) ${item}: ${data.description}\n`);
                 }
                 for (const [ability, data] of Object.entries(abilitiesJSON)) {
-                    if (!data.price) continue;
+                    if (!data.price) continue; // don't show abilities that don't have a price
                     if (player.abilities[ability]) continue; // don't show abilities that the player already has. though this might change eventually and i will make an ability rotation system where you can only have like 4 abilities at once
                     log(`   - (${data.price} souls) ${ability} (ability): ${data.description}\n`);
                 }
