@@ -5,7 +5,7 @@ const { player } = require('../player/playerManager.js');
 const itemsJSON = require('../data/items.json');
 const enemiesJSON = require('../data/enemies.json');
 const Room = require('../data/Room.js');
-const specialRooms = require('../data/rooms.json');
+const roomsJSON = require('../data/rooms.json');
 
 /**
  * Logs a message to the terminal.
@@ -138,25 +138,32 @@ function generateRandomRoom() {
         "A crypt with ancient tombs."
     ];
 
-    let roomName, roomDescription;
+    // const randomIndex = Math.floor(Math.random() * roomNames.length);
+    // const roomName = roomNames[randomIndex] + Math.floor(Math.random() * 1000);
+    // const roomDescription = roomDescriptions[randomIndex];
+    // let newRoom = new Room(roomName, roomDescription);
+    const items = Object.keys(itemsJSON);
+    let newRoom;
 
-    // 20% chance to generate a special room (its 20% for now)
-    if (Math.random() < 0.2 && Object.keys(specialRooms).length > 0) {
-        const specialRoomIndex = Math.floor(Math.random() * Object.keys(specialRooms).length);
-        const specialRoom = specialRooms[specialRoomIndex];
-        console.log(specialRooms);
-        roomName = specialRoom.name;
-        roomDescription = specialRoom.description;
-        // usedSpecialRooms.add(roomName);
-        // specialRooms.splice(specialRoomIndex, 1);
-    } else {
-        const randomIndex = Math.floor(Math.random() * roomNames.length);
-        roomName = roomNames[randomIndex] + Math.floor(Math.random() * 1000);
-        roomDescription = roomDescriptions[randomIndex];
+    // 20% chance to select a special room from rooms.json
+    if (Math.random() < 0.2) {
+        const specialRooms = Object.keys(roomsJSON).map(room => roomsJSON[room]).filter(room => room.special);
+        while (specialRooms.length > 0) {
+            const randomSpecialRoom = specialRooms[Math.floor(Math.random() * specialRooms.length)];
+            if (randomSpecialRoom.special) {
+                newRoom = new Room(randomSpecialRoom.name, randomSpecialRoom.description, randomSpecialRoom.items, randomSpecialRoom.enemies, randomSpecialRoom.exits);
+                break;
+            }
+        }
     }
 
-    const newRoom = new Room(roomName, roomDescription);
-    const items = Object.keys(itemsJSON);
+    // If no special room was selected, generate a random room
+    if (!newRoom) {
+        const randomIndex = Math.floor(Math.random() * roomNames.length);
+        const roomName = roomNames[randomIndex] + Math.floor(Math.random() * 1000);
+        const roomDescription = roomDescriptions[randomIndex];
+        newRoom = new Room(roomName, roomDescription);
+    }
 
     // add random enemies to the room using rng
     const enemies = Object.keys(enemiesJSON);
