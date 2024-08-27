@@ -246,7 +246,7 @@ async function savePlayer(data) {
 async function displayEssence() {
     const location = await term.getCursorLocation(); // await is necessary
     term.moveTo(term.width - 13, 1);
-    term.bgWhite.black(`Essence: ${player.essence}`); // display the player's essence in the top right corner
+    term.bgWhite.black(`Essence: ${Math.round(player.essence)}`); // display the player's essence in the top right corner
     term.moveTo(location.x, location.y); // move back where we were after displaying essence
 }
 

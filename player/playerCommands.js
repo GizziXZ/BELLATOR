@@ -279,7 +279,21 @@ const commands = {
                         await updatePlayerVariable(player);
                     }
                     if (effect.type === 'learn') {
-                        player.abilities[effect.value] = abilitiesJSON[effect.value];
+                        if (player.abilities.length >= 4) {
+                            log("You have learned a new ability, but you already have 4 abilities. You will need to forget one to learn this one.", 'yellow');
+                            term.nextLine(2);
+                            const abilities = Object.keys(player.abilities).map(key => `${key} - ${player.abilities[key].description}`);
+                            term.singleColumnMenu(abilities, async (error, response) => {
+                                if (error) {
+                                    log("Error: " + error, 'red');
+                                } else {
+                                    response.selectedText = response.selectedText.split(' - ')[0];
+                                    delete player.abilities[response.selectedText];
+                                    player.abilities[effect.value] = abilitiesJSON[effect.value]; 
+                                    await updatePlayerVariable(player);
+                                }
+                            });
+                        } else player.abilities[effect.value] = abilitiesJSON[effect.value];
                         await updatePlayerVariable(player);
                     }
                 } else {
@@ -667,6 +681,22 @@ const commands = {
                     if (player.souls < abilityData.price) { // if the player doesn't have enough souls
                         log("The storekeeper remains unresponsive. The amount of souls you wave in front of him is not enough.", 'red');
                         return term.nextLine(2);
+                    }
+
+                    if (player.abilities.length >= 4) {
+                        log("You already have 4 abilities. You will need to forget one to learn this one.", 'yellow');
+                        term.nextLine(2);
+                        const abilities = Object.keys(player.abilities).map(key => `${key} - ${player.abilities[key].description}`);
+                        term.singleColumnMenu(abilities, async (error, response) => {
+                            if (error) {
+                                log("Error: " + error, 'red');
+                            } else {
+                                response.selectedText = response.selectedText.split(' - ')[0];
+                                delete player.abilities[response.selectedText];
+                                player.abilities[abilityKey] = abilityData; 
+                                await updatePlayerVariable(player);
+                            }
+                        });
                     }
 
                     player.souls -= abilityData.price;

@@ -44,5 +44,52 @@
         },
         "souls": 2,
         "spawn": 0.16
+    },
+    "Greater Skeleton": {
+        "name": "Greater Skeleton",
+        "description": "A skeleton with a blackened sword and shield. It's eyes glow with a bright blue light.",
+        "health": 15,
+        "level": 2,
+        "criticals": false,
+        "specials": {
+            "Bone Breaker": {
+                "description": "The skeleton swings it's sword at you, you feel a sharp pain in your side.",
+                "effect": {
+                    "type": "damage",
+                    "value": 4
+                }
+            }
+        },
+        "damage": 3,
+        "experience": 12,
+        "loot": {
+            "Potion": 0.12
+        },
+        "souls": 4,
+        "spawn": 0.12
+    },
+    "Cultist": {
+        "name": "Cultist",
+        "description": "A cultist with a dark robe and a dagger. It's eyes are hidden behind a mask.",
+        "health": 12,
+        "level": 2,
+        "criticals": false,
+        "specials": {
+            "Dark Ritual": {
+                "description": "The cultist chants a dark incantation, you feel a chill run down your spine.",
+                "effect": {
+                    "type": "damage",
+                    "value": 3
+                }
+            }
+        },
+        "damage": 2,
+        "experience": 10,
+        "loot": {
+            "Potion": 0.1,
+            "Soulstone": 0.05
+        },
+        "souls": 4,
+        "spawn": 0.12
     }
 }
