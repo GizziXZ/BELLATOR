@@ -145,8 +145,7 @@ function generateRandomRoom() {
     const items = Object.keys(itemsJSON);
     let newRoom;
 
-    // 20% chance to select a special room from rooms.json
-    if (Math.random() < 0.2) {
+    if (Math.random() < 0.1) { // 10% chance of generating a special room
         const specialRooms = Object.keys(roomsJSON).map(room => roomsJSON[room]).filter(room => room.special);
         while (specialRooms.length > 0) {
             const randomSpecialRoom = specialRooms[Math.floor(Math.random() * specialRooms.length)];
@@ -155,6 +154,7 @@ function generateRandomRoom() {
                 break;
             }
         }
+        return newRoom;
     }
 
     // If no special room was selected, generate a random room

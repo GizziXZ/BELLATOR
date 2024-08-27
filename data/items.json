@@ -111,5 +111,18 @@
         "rarity": 0.04,
         "unique": true,
         "interactOnly": false
+    },
+    "Ancient Scroll": {
+        "name": "Ancient Scroll",
+        "description": "An ancient scroll that contains forgotten knowledge. Gain 20 experience",
+        "use": "You read the scroll and feel your mind expand with new knowledge",
+        "type": "consumable",
+        "effect": {
+            "type": "experience",
+            "value": 20
+        },
+        "rarity": 0.05,
+        "unique": false,
+        "interactOnly": false
     }
 }

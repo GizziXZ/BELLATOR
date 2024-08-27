@@ -1,12 +1,15 @@
 {
     "start": {
+        "name": "start",
         "description":"You glance at your surroundings, the smell of damp earth fills your nostrils. You are in a dark cave. You have no memory of how you got here. You see a lit hole in the wall infront of you.",
         "exits": {
             "hole":"shrineSTART"
         },
-        "special": false
+        "special": false,
+        "take": false
     },
     "shrineSTART": {
+        "name": "shrineSTART",
         "description":"As you go through the hole, you notice you are now in a shrine. There are lit candles and a statue of what appears to be a god of death. You notice a glowing orb on the altar.",
         "items": {
             "orb": {
@@ -20,9 +23,11 @@
                 }
             }
         },
-        "special": false
+        "special": false,
+        "take": false
     },
     "shrine": {
+        "name": "shrine",
         "description":"You are in the shrine. The orb is still glowing on the altar. a sense of purpose fills you.",
         "items": {
             "orb": {
@@ -32,26 +37,32 @@
         "exits": {
             "door":"gameSTART"
         },
-        "special": false
+        "special": false,
+        "take": false
     },
     "gameSTART": {
+        "name": "gameSTART",
         "description":"You notice you are inside a dungeon, the walls are damp and the air is musty. There is only one way out, forward.",
         "exits": {
             "forward":""
         },
-        "special": false
+        "special": false,
+        "take": false
     },
     "store": {
+        "name": "store",
         "description": "You are in a store. The storekeeper stands behind a grate, he is a hooded figure with a skeletal face who seems to be unreactive. You feel a chill run down your spine as you look at him. He seems to be waiting for you to make a purchase. \"store view\" to view items",
         "exits": {
             "door":"gameSTART"
         },
-        "special": false
+        "special": false,
+        "take": false
     },
     "hallOfEchoes": {
+        "name": "hallOfEchoes",
         "description": "You enter a vast hall filled with echoes of past adventurers. The walls are lined with ancient runes that glow faintly. You feel a sense of history and danger.",
         "items": {
-            "ancientScroll": {
+            "Ancient Scroll": {
                 "description": "An ancient scroll that contains forgotten knowledge.",
                 "interact": {
                     "description": "You read the scroll and feel your mind expand with new knowledge."
@@ -65,6 +76,7 @@
         "exits": {
             "forward": "gameSTART"
         },
-        "special": true
+        "special": true,
+        "take": true
     }
 }

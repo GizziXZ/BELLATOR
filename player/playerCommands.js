@@ -24,7 +24,7 @@ const commands = {
         description: "Look around the current room or at an item.",
         execute: async (item) => {
             await updatePlayerVariable();
-            const room = rooms[player.room] || player.room;
+            const room = player.room;
             let roomDescription = room.description;
             hasAsciiArt = false; // Reset the ASCII art flag
             if (fs.existsSync(`./ASCII/${player.room}.txt`)) { // if there is an ASCII art file for the room that we are in, display it
@@ -109,11 +109,11 @@ const commands = {
             }
             player.from = exit;
             if (rooms[player.room] && rooms[player.room].exits[exit]) { // If the target room is predefined
-                player.room = targetRoom;
-                if (player.room === 'gameSTART') {
+                if (rooms[player.room].exits[exit] === 'gameSTART') {
                     await startGame();
                     return;
                 }
+                player.room = targetRoom;
                 await updatePlayerVariable(player);
                 await handleCommand('look');
             } else { // If the target room is random
@@ -201,7 +201,7 @@ const commands = {
             }
             item = item.toLowerCase().trim();
             const room = player.room;
-            if (rooms[room]) {
+            if (rooms[room.name] && rooms[room.name].take === false) {
                 log("You can't take that.", 'red'); // if the room is predefined, you can't take anything
                 term.nextLine(1);
                 return;
@@ -212,12 +212,12 @@ const commands = {
             }, {});
             if (roomItems[item]) { // if the item exists in the room
                 const originalItemName = roomItems[item]; // get the original item name
-                if (itemsJSON[originalItemName].interactOnly) {
+                if (itemsJSON[originalItemName] && itemsJSON[originalItemName].interactOnly) {
                     log("Try interacting with that item instead.", 'red');
                     return term.nextLine(2);
                 }
                 player.inventory.push(originalItemName); // add the item to the player's inventory
-                if (itemsJSON[originalItemName].unique) player.uniques.push(room.items[originalItemName]); // add the unique item to the player's list of found uniques
+                if (itemsJSON[originalItemName] && itemsJSON[originalItemName].unique) player.uniques.push(room.items[originalItemName]); // add the unique item to the player's list of found uniques
                 delete room.items[originalItemName]; // remove the item from the room
                 updatePlayerVariable(player);
                 log(`You took the ${originalItemName}.`, 'yellow');
@@ -336,7 +336,6 @@ const commands = {
                 log("You need to specify an enemy to fight.", 'red');
                 return term.nextLine(2);
             }
-            playSound('combat music', true);
             enemy = enemy.toLowerCase().trim();
             const enemyKey = Object.keys(enemiesJSON).find(key => key.toLowerCase() === enemy);
             const enemyData = enemiesJSON[enemyKey];
@@ -344,8 +343,9 @@ const commands = {
                 log("I don't see that enemy here.", 'red');
                 return term.nextLine(2);
             }
-
+            
             enemy = new Enemy(enemyData.name, enemyData.health, enemyData.level, enemyData.damage, {});
+            playSound('combat music', true);
 
             let pendingMessage;
 
