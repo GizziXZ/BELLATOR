@@ -102,10 +102,6 @@ const commands = {
 
             const room = rooms[player.room] || player.room;
             let targetRoom = room.exits[exit];
-            if (exit === 'forward' && player.room === 'gameSTART') {
-                await startGame();
-                return;
-            }
             if (!targetRoom) {
                 log("I don't see that exit.", 'red');
                 term.nextLine(2);
@@ -114,6 +110,10 @@ const commands = {
             player.from = exit;
             if (rooms[player.room] && rooms[player.room].exits[exit]) { // If the target room is predefined
                 player.room = targetRoom;
+                if (player.room === 'gameSTART') {
+                    await startGame();
+                    return;
+                }
                 await updatePlayerVariable(player);
                 await handleCommand('look');
             } else { // If the target room is random
